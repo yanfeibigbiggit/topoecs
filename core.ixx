@@ -147,22 +147,7 @@ namespace tecs
 		}
 	}
 
-	class spinlock_t
-	{
-	public:
-		std::atomic_flag flag;
-
-		void lock(const std::memory_order order_ = std::memory_order::memory_order_seq_cst)
-		{
-			while (flag.test_and_set(order_));
-		}
-		void unlock()
-		{
-			flag.clear();
-		}
-	};
-
-	namespace caller
+	namespace compile
 	{
 		//export template<typename... T> void type_id() {}
 		//export using type_id_t = void(*)();
@@ -214,9 +199,6 @@ namespace tecs
 		}
 
 		template<typename... Args>
-		class type_order_sequence_t {};
-
-		template<typename... Args>
 		constexpr auto sort_index_sequence()
 		{
 			constexpr std::size_t N = sizeof...(Args);
@@ -249,8 +231,9 @@ namespace tecs
 			}
 			return index_array;
 		}
+
 		template<typename TList, size_t... I>
-		constexpr auto make_order_type_sequence(std::index_sequence<I...> x)
+		constexpr auto make_order_type_sequence(std::index_sequence<I...>)
 		{
 			using type = mpl::typelist<mpl::at<I, TList>::type...>;
 			return type{};
@@ -266,6 +249,24 @@ namespace tecs
 			return tid;
 		}
 	}
+}
+
+namespace tecs
+{
+	class spinlock_t
+	{
+	public:
+		std::atomic_flag flag;
+
+		void lock(const std::memory_order order_ = std::memory_order::memory_order_seq_cst)
+		{
+			while (flag.test_and_set(order_));
+		}
+		void unlock()
+		{
+			flag.clear();
+		}
+	};
 }
 
 namespace tecs
@@ -618,21 +619,53 @@ namespace tecs
 	export class archetype_t
 	{
 	private:
+		template<typename... Args>
+		struct storage_t
+		{
+			using this_type = storage_t<Args...>;
+
+		public:
+		public:
+			static void name() { std::cout << compile::type_name_id<this_type>() << std::endl; }
+
+		public:
+		};
+		
+
+		template<typename... Args>
+		struct layout_t
+		{
+		public:
+			void name() { storage_t<Args...>::name(); }
+			void add() {  }
+		//public:
+		//	static constexpr auto apply()
+		//	{
+		//		auto storage = apply_impl(
+		//			compile::constexpr_array_to_index_sequence< compile::sort_index_sequence<Args...>()>(
+		//				std::make_index_sequence<sizeof...(Args)>{}));
+
+		//		return storage;
+		//	}
+		//	static auto operator()()
+		//	{
+
+		//	}
+
+		//private:
+		//	template<size_t... I>
+		//	static constexpr auto apply_impl(std::index_sequence<I...>)
+		//	{
+		//		using origin_sequence_t = mpl::typelist<Args...>;
+		//		using type = storage_t<mpl::at<I, origin_sequence_t>::type...>;
+		//		return type{};
+		//	}
+		};
+
+	private:
 		int id;
 		std::vector<int> comp_id_array;
 
-		template<const char* N>
-		class type_of_name_t
-		{
-
-		};
-
-		template<typename T>
-		class name_of_type_t
-		{
-			static constexpr const char* name = typeid(T).name();
-			static constexpr T* pointer = nullptr;
-		};
 
 	public:
 
@@ -688,62 +721,25 @@ namespace tecs
 		}
 
 	public:
-		template<typename... CompNames>
-			requires traits::is_all_same_v<CompNames...>
-		static int define(const char* comp, CompNames&&... comps)
-		{
-			//static_assert(traits::is_all_same_v<CompNames...>);
 
-			uint_t tid = std::this_thread::get_id()._Get_underlying_id();
-			
-			auto comp_id = component_t::get_id(comp);
-			std::cout << comp << ": " << comp_id << std::endl;
-			
-			define(std::forward<CompNames>(comps)...);
-			return 0;
+		template<typename... Args>
+		static constexpr auto layout()
+		{
+			constexpr auto layout = layout_impl<mpl::typelist<Args...>>(
+				compile::constexpr_array_to_index_sequence< compile::sort_index_sequence<Args...>()>(
+					std::make_index_sequence<sizeof...(Args)>{}));
+
+			return layout;
 		}
 
-		static void define(const char* comp_array[], int start, int count)
+	private:
+
+		template<typename TList, size_t... I>
+		static constexpr auto layout_impl(std::index_sequence<I...>)
 		{
-			for (int i = 0; i < count; i++)
-			{
-				std::cout << comp_array[start + i] << std::endl;
-			}
+			using type = layout_t<mpl::at<I, TList>::type...>;
+			return type{};
 		}
-
-		template<typename Iterator>
-			requires std::bidirectional_iterator<Iterator> && (!must::is_component_name_t<Iterator>)//!must, or (const char*...)will enter here
-		static void define(Iterator begin, Iterator end)
-		{
-			for (; begin != end; ++begin) 
-			{
-				if constexpr (traits::is_std_pair_v<std::decay_t<decltype(*begin)>>)
-				{
-					std::cout << begin->second << std::endl;
-				}
-				else
-				{
-					std::cout << *begin << std::endl;
-				}
-			}
-		}
-
-		template<typename... CompName>
-		static int get(const char* comp_name, CompName... comps)
-		{
-			return 0;
-		}
-
-		static int get(const char* comp_array[], int count)
-		{
-			return 0;
-		}
-
-		private:
-			static void define()
-			{
-
-			}
 	};
 
 	export class world_t
@@ -761,12 +757,6 @@ namespace tecs
 		{
 
 		}
-		//template<typename comp_t> void add(id_t entity, comp_t comp)
-		//{
-		//	assert(sizeof(comp_t) == bytes_per_element);
-		//	auto src = static_cast<byte_t*>(comp);
-		//	add(entity, src, 0);
-		//}
 	};
 
 }
