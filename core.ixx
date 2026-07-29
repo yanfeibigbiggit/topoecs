@@ -1,4 +1,4 @@
-#include<expected>
+#include "macros.h"
 #include "ankerl/unordered_dense.h"
 
 export module core;
@@ -22,7 +22,7 @@ namespace tecs
 
 		template <typename T, typename U> struct is_std_pair<std::pair<T, U>> : std::true_type {};
 
-		export template<typename T> constexpr bool is_std_pair_v = is_std_pair<T>::value;
+		MODULE_EXPORT template<typename T> constexpr bool is_std_pair_v = is_std_pair<T>::value;
 		//<<<<<<<<
 
 		//>>>>>>>> is_std_string_v
@@ -35,7 +35,7 @@ namespace tecs
 		template<> struct is_std_string_type<std::string&&> : std::true_type {};
 		template<> struct is_std_string_type<const std::string&&> : std::true_type {};
 
-		export template<typename T> constexpr bool is_std_string_v = is_std_string_type<T>::value;
+		MODULE_EXPORT template<typename T> constexpr bool is_std_string_v = is_std_string_type<T>::value;
 		//<<<<<<<<
 
 		//>>>>>>>> remove_qualifier_t
@@ -44,7 +44,7 @@ namespace tecs
 		{
 			using type = std::remove_cvref_t<std::remove_pointer_t<T>>;
 		};
-		export template<typename T> using remove_qualifier_t = remove_qualifier_type<T>::type;
+		MODULE_EXPORT template<typename T> using remove_qualifier_t = remove_qualifier_type<T>::type;
 		//<<<<<<<<
 
 		//>>>>>>>> is_component_name_v
@@ -55,7 +55,7 @@ namespace tecs
 			enum { value = std::is_same_v<raw_t, char> || is_std_string_v<CompNameType> };
 		};
 
-		export template<typename T> constexpr bool is_component_name_v = is_component_name_type<T>::value;
+		MODULE_EXPORT template<typename T> constexpr bool is_component_name_v = is_component_name_type<T>::value;
 		//<<<<<<<<
 
 		//>>>>>>>> is_all_same_v
@@ -82,7 +82,7 @@ namespace tecs
 			enum { value = std::is_same_v<first_t, next_t>&& is_all_same_type<Args...>::value };
 		};
 
-		export template<typename... Args> constexpr bool is_all_same_v = is_all_same_type<Args...>::value;
+		MODULE_EXPORT template<typename... Args> constexpr bool is_all_same_v = is_all_same_type<Args...>::value;
 		//<<<<<<<<
 
 		//>>>>>>>> is_all_component_name_v
@@ -104,9 +104,10 @@ namespace tecs
 			enum { value = traits::is_component_name_v<first_t> && is_all_component_name_type<Args...>::value };
 		};
 
-		export template<typename... Args> constexpr bool is_all_component_name_v = is_all_component_name_type<Args...>::value;
+		MODULE_EXPORT template<typename... Args> constexpr bool is_all_component_name_v = is_all_component_name_type<Args...>::value;
 		//<<<<<<<<
 
+		//>>>>>>>> select_if_else_t
 		template<bool, typename TrueResult, typename FalseResult> struct select_if_else_t;
 
 		template<typename TrueResult, typename FalseResult>
@@ -114,14 +115,7 @@ namespace tecs
 
 		template<typename TrueResult, typename FalseResult>
 		struct select_if_else_t<false, TrueResult, FalseResult> { using type = FalseResult; };
-
-
-		template<typename One, typename Two>
-		constexpr bool type_name_compare_compile_time()
-		{
-			return std::strcmp(typeid(One).name(), typeid(Two).name()) <= 0;
-		}
-
+		//<<<<<<<<
 
 	}
 
@@ -147,10 +141,92 @@ namespace tecs
 		}
 	}
 
-	namespace compile
+	namespace preconst
 	{
-		//export template<typename... T> void type_id() {}
-		//export using type_id_t = void(*)();
+		template<typename UniqueTag>
+		struct type_id_counter_t
+		{
+			template<std::size_t N>
+			struct const_counter_flag
+			{
+				//return must be `auto` for requires statement in const_counter_next()
+				friend constexpr auto adl_const_counter_flag(const_counter_flag<N>);
+			};
+
+			template<std::size_t N>
+			struct const_counter_writer
+			{
+				//return must be `auto` for requires statement in const_counter_next()
+				friend constexpr auto adl_const_counter_flag(const_counter_flag<N>)
+				{
+					return N;
+				}
+			};
+
+			template<std::size_t N = 0, auto uique = []() {} >
+			static constexpr std::size_t const_counter_next()
+			{
+				constexpr bool defined = requires{ adl_const_counter_flag(const_counter_flag<N>{}); };
+				if constexpr (!defined)
+				{
+					const_counter_writer<N> writer;
+					return N;
+				}
+				else
+				{
+					return const_counter_next<N + 1>();
+				}
+			}
+
+			template<typename ... Args>
+			struct type_id_t
+			{
+				static constexpr std::size_t type_id = const_counter_next();
+			};
+		};
+
+		struct type_id_gobal_tag_t {};
+		template<typename... Args>
+		constexpr std::size_t type_id_global = type_id_counter_t< type_id_gobal_tag_t>::type_id_t<Args...>::type_id;
+
+		//template<std::size_t N>
+		//struct const_counter_flag
+		//{
+		//	//return must be `auto` for requires statement in const_counter_next()
+		//	friend constexpr auto adl_const_counter_flag(const_counter_flag<N>);
+		//};
+
+		//template<std::size_t N>
+		//struct const_counter_writer
+		//{
+		//	//return must be `auto` for requires statement in const_counter_next()
+		//	friend constexpr auto adl_const_counter_flag(const_counter_flag<N>)
+		//	{
+		//		return N;
+		//	}
+		//};
+
+		//export template<std::size_t N = 0, auto uique = [](){} >
+		//constexpr std::size_t const_counter_next()
+		//{
+		//	constexpr bool defined = requires{ adl_const_counter_flag(const_counter_flag<N>{}); };
+		//	if constexpr (!defined)
+		//	{
+		//		const_counter_writer<N> writer;
+		//		return N;
+		//	}
+		//	else
+		//	{
+		//		return const_counter_next<N + 1>();
+		//	}
+		//}
+
+		//MODULE_EXPORT template<typename ... Derived>
+		//struct type_id_t
+		//{
+		//	static constexpr std::size_t type_id = const_counter_next();
+		//};
+
 
 		template <typename T>
 		constexpr const char* type_name_id()
@@ -202,8 +278,8 @@ namespace tecs
 		constexpr auto sort_index_sequence()
 		{
 			constexpr std::size_t N = sizeof...(Args);
-			using index_name_pair = std::pair<std::size_t, const char*>;
-			std::array<const char*, N> type_array{ type_name_id<Args>()... };
+			using index_name_pair = std::pair<std::size_t, std::size_t>;
+			std::array<std::size_t, N> type_array{ type_id_global<Args>... };
 			std::array<index_name_pair, N> type_index_array;
 			for (int i = 0; i < N; i++)
 			{
@@ -211,11 +287,12 @@ namespace tecs
 				type_index_array[i].second = type_array[i];
 			}
 
+			//temp. waiting for c++26.
 			for (int i = 0; i < N - 1; i++)
 			{
 				for (int j = 0; j < N - 1 - i; j++)
 				{
-					if (compare_type_name_id(type_index_array[j].second, type_index_array[j + 1].second))
+					if(type_index_array[j].second > type_index_array[j + 1].second)
 					{
 						auto temp = type_index_array[j + 1];
 						type_index_array[j + 1] = type_index_array[j];
@@ -232,22 +309,22 @@ namespace tecs
 			return index_array;
 		}
 
-		template<typename TList, size_t... I>
-		constexpr auto make_order_type_sequence(std::index_sequence<I...>)
-		{
-			using type = mpl::typelist<mpl::at<I, TList>::type...>;
-			return type{};
-		}
+		//template<typename TList, size_t... I>
+		//constexpr auto make_order_type_sequence(std::index_sequence<I...>)
+		//{
+		//	using type = mpl::typelist<mpl::at<I, TList>::type...>;
+		//	return type{};
+		//}
 
-		export template<typename... Args>
-			constexpr auto sort_type_sequence()
-		{
-			auto tid = make_order_type_sequence<mpl::typelist<Args...>>(
-				constexpr_array_to_index_sequence< sort_index_sequence<Args...>()>(
-					std::make_index_sequence<sizeof...(Args)>{}));
+		//MODULE_EXPORT template<typename... Args>
+		//	constexpr auto sort_type_sequence()
+		//{
+		//	auto tid = make_order_type_sequence<mpl::typelist<Args...>>(
+		//		constexpr_array_to_index_sequence< sort_index_sequence<Args...>()>(
+		//			std::make_index_sequence<sizeof...(Args)>{}));
 
-			return tid;
-		}
+		//	return tid;
+		//}
 	}
 }
 
@@ -275,7 +352,7 @@ namespace tecs
 	const id_t MASK_VERSION	= 0xff000000;
 	const id_t VERSION_ONE = 1 << 24;
 
-	export const id_t ID_NULL = 0x00ffffff;
+	MODULE_EXPORT const id_t ID_NULL = 0x00ffffff;
 
 	inline uint_t get_id(id_t e) { return e & MASK_ID; }
 	inline id_t set_id(id_t e, uint_t newid) { return e - get_id(e) + newid; }
@@ -286,7 +363,7 @@ namespace tecs
 	enum error_code_t { e_null_pointer, e_negative_integer, e_missing_component };
 	
 
-	export class entity_t
+	MODULE_EXPORT class entity_t
 	{
 	private:
 		id_t id_v = 0;
@@ -398,7 +475,7 @@ namespace tecs
 	};
 
 
-	export enum basic_type_t : byte_t
+	MODULE_EXPORT enum basic_type_t : byte_t
 	{
 		int8,
 		uint8,
@@ -452,7 +529,7 @@ namespace tecs
 		return layout[e];
 	}
 
-	export const xstring& get_basic_type_name(basic_type_t t)
+	MODULE_EXPORT const xstring& get_basic_type_name(basic_type_t t)
 	{
 		static const xstring names[] =
 		{
@@ -487,276 +564,70 @@ namespace tecs
 	}
 
 	//////////////////////////////////////////////////////////////////////////////////////////////
-	// component_t: description of one component
+	// 
 	//////////////////////////////////////////////////////////////////////////////////////////////
-	export class component_t
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// 
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	template<typename... Args>
+	struct archetype_stoarge_t
 	{
-	private:
-		class member_t
-		{
-		public:
-			xstring name;
-			basic_type_t type;
-		};
+		using this_type = archetype_stoarge_t<Args...>;
 
 	private:
-		int _id;
-		xstring _name;
-		std::vector<member_t> _members;
-		
-	public:
-		int id() { return _id; }
-		const xstring& name() { return _name; }
-		uint_t size() { return _members.size(); }
-
-		component_t(const char* comp_name) { _name = comp_name; }
-
-		template<typename... Args>
-		void member(const char* member_name, basic_type_t basic_type, Args... args)
-		{
-			auto found = std::find_if(_members.begin(), _members.end(), [member_name](const member_t& item) { return item.name == member_name; });
-			if (found != _members.end())
-			{
-				found->type = basic_type;
-			}
-			else
-			{
-				uint_t member_size = get_basic_type_size(basic_type);
-				member_t item = { member_name, basic_type };
-				_members.push_back(item);
-			}
-
-			member(args...);
-		}
-
-		xstring format_string()
-		{
-			xstring s;
-			s.append("[component:").append(_name).append("]");
-			for (auto item : _members)
-			{
-				s.append("(").append(item.name).append(",").append(get_basic_type_name(item.type)).append(")");
-			}
-			return s;
-		}
-
-	private:
-		void member() {}
-
-	private:
-		static xmap<xstring, int> comp_name_map;
-		static xmap<int, xstring> comp_id_map;
-		static std::vector<component_t> comp_desc_array;
 
 	public:
+		static void name() { std::cout << preconst::type_name_id<this_type>() << std::endl; }
+
 		template<typename... Args>
-		static int define(const char* comp_name, const char* member_name, basic_type_t basic_type, Args... args)
+		static void add(Args...args) 
 		{
-			static spinlock_t spin;
-			spin.lock();
-			int comp_id = get_id(comp_name);
-			if (comp_id < 0)
-			{
-				component_t desc = component_t(comp_name);
-				desc.member(member_name, basic_type, args...);
-
-				comp_id = comp_desc_array.size();
-				desc._id = comp_id;
-				comp_desc_array.push_back(std::move(desc));
-
-				comp_name_map[comp_name] = comp_id;
-				comp_id_map[comp_id] = comp_name;
-			}
-			else
-			{
-				component_t& desc = comp_desc_array[comp_id];
-				desc.member(member_name, basic_type, args...);
-			}
-			spin.unlock();
-			return comp_id;
+			
 		}
 
-		static bool has(const char* comp_name)
-		{
-			return comp_name_map.contains(comp_name);
-		}
-
-		static int get_id(const char* comp_name)
-		{
-			auto found = comp_name_map.find(comp_name);
-			if (found == comp_name_map.end())
-			{
-				return -1;
-			}
-			return found->second;
-		}
-
-		static const component_t& get(int comp_id)
-		{
-			return comp_desc_array[comp_id];
-		}
-
-		static const component_t& get(const char* comp_name)
-		{
-			int comp_id = get_id(comp_name);
-			return comp_desc_array[comp_id];
-		}
-
-		//format: [component:component_name](member_name_1, basic_type_t)(member_name_2, basic_type_t)...
-		void parse_from(const char* format_)
-		{
-
-		}
+	public:
 	};
-	xmap<xstring, int> component_t::comp_name_map;
-	xmap<int, xstring> component_t::comp_id_map;
-	std::vector<component_t> component_t::comp_desc_array;
 
-
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	//// archetype_t: description of one archetype_t
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	export class archetype_t
+	template<typename... Args>
+	struct archetype_define_t
 	{
 	private:
-		template<typename... Args>
-		struct storage_t
+		static constexpr auto apply()
 		{
-			using this_type = storage_t<Args...>;
-
-		public:
-		public:
-			static void name() { std::cout << compile::type_name_id<this_type>() << std::endl; }
-
-		public:
-		};
-		
-
-		template<typename... Args>
-		struct layout_t
-		{
-		public:
-			void name() { storage_t<Args...>::name(); }
-			void add() {  }
-		//public:
-		//	static constexpr auto apply()
-		//	{
-		//		auto storage = apply_impl(
-		//			compile::constexpr_array_to_index_sequence< compile::sort_index_sequence<Args...>()>(
-		//				std::make_index_sequence<sizeof...(Args)>{}));
-
-		//		return storage;
-		//	}
-		//	static auto operator()()
-		//	{
-
-		//	}
-
-		//private:
-		//	template<size_t... I>
-		//	static constexpr auto apply_impl(std::index_sequence<I...>)
-		//	{
-		//		using origin_sequence_t = mpl::typelist<Args...>;
-		//		using type = storage_t<mpl::at<I, origin_sequence_t>::type...>;
-		//		return type{};
-		//	}
-		};
-
-	private:
-		int id;
-		std::vector<int> comp_id_array;
-
-
-	public:
-
-		template<typename... CompNames>
-		void add(const char* comp_name, CompNames... comps)
-		{
-			auto comp_id = component_t::get_id(comp_name);
-			if (comp_id < 0)
-			{
-				return;
-			}
-
-			if (std::find(comp_id_array.begin(), comp_id_array.end(), comp_id) != comp_id_array.end())
-			{
-				return;
-			}
-
-			comp_id_array.push_back(comp_id);
-
-			add(comps...);
-		}
-		void add()
-		{
-			std::sort(comp_id_array.begin(), comp_id_array.end());
-		}		
-
-		int has(const char* comp_name)
-		{
-			auto comp_id = component_t::get_id(comp_name);
-			if(comp_id < 0)
-			{
-				return 0;
-			}
-			for (auto oneid : comp_id_array)
-			{
-				if(comp_id == oneid)
-				{
-					return 1;
-				}
-			}
-			return 0;
-		}
-
-		xstring format_string()
-		{
-			xstring s;
-			for (auto comp_id : comp_id_array)
-			{
-				auto desc = component_t::get(comp_id);
-				s.append(desc.format_string()).append("\n");
-			}
-			return s;
-		}
-
-	public:
-
-		template<typename... Args>
-		static constexpr auto layout()
-		{
-			constexpr auto layout = layout_impl<mpl::typelist<Args...>>(
-				compile::constexpr_array_to_index_sequence< compile::sort_index_sequence<Args...>()>(
+			constexpr auto storage = apply_impl(
+				preconst::constexpr_array_to_index_sequence< preconst::sort_index_sequence<Args...>() >(
 					std::make_index_sequence<sizeof...(Args)>{}));
 
-			return layout;
+			return storage;
 		}
 
-	private:
-
-		template<typename TList, size_t... I>
-		static constexpr auto layout_impl(std::index_sequence<I...>)
+		template<size_t... I>
+		static constexpr auto apply_impl(std::index_sequence<I...>)
 		{
-			using type = layout_t<mpl::at<I, TList>::type...>;
+			using origin_sequence_t = mpl::typelist<Args...>;
+			using type = archetype_stoarge_t<mpl::at<I, origin_sequence_t>::type...>;
 			return type{};
 		}
+
+	public:
+		using type = decltype(apply());
 	};
 
-	export class world_t
-	{
-	private:
-		id_generator_t id_generator;
-	public:
-		entity_t entity()
-		{
-			auto id_v = id_generator.get();
-			return entity_t::null;
-		}
-		bool is_alive() { return true; }
-		void free()
-		{
+	export template<typename... Args>
+	using archetype_t = archetype_define_t<Args...>::type;
 
-		}
+	template<typename... Args>
+	struct query_t
+	{
+
+	};
+
+	MODULE_EXPORT template<typename WorldCode>
+	struct world_t
+	{
+
 	};
 
 }

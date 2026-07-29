@@ -1,63 +1,55 @@
 ﻿// topoecs.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
 //
-
+//
 import std;
 import core;
+
+
 
 int main()
 {
 
-    tecs::component_t::define("position", "x", tecs::basic_type_t::float32, "y", tecs::basic_type_t::float32, "z", tecs::basic_type_t::float64);
-    tecs::component_t::define("life", "value", tecs::basic_type_t::int32);
+    //std::cout << tecs::component_a::type_id << " -- " << tecs::component_b::type_id << " " << tecs::component_c::type_id << std::endl;
+    //std::cout << tecs::component_d::type_id << " -- " << tecs::component_e::type_id << " " << tecs::component_f::type_id << std::endl;
+    //std::cout << tecs::component_g::type_id << " -- " << tecs::component_h::type_id << " " << tecs::component_i::type_id << std::endl;
 
-    tecs::archetype_t arche;
-    arche.add("position", "life");
-    std::cout << arche.format_string() << std::endl;
+    using t1 = tecs::archetype_t<int, char, float>;
+    std::cout << typeid(t1).name() << std::endl;
+    using t2 = tecs::archetype_t<int, float, char>;
+    std::cout << typeid(t2).name() << std::endl;
+    using t3 = tecs::archetype_t<float, int, char>;
+    std::cout << typeid(t3).name() << std::endl;
 
-    std::array<const char*, 2> compvector = { "animation", "audio" };
-    tecs::archetype_t::define(compvector.begin(), compvector.end());
-    std::map<int,  std::string> map = { {1, "counter"}, {2, "timer"} };
-    tecs::archetype_t::define(map.begin(), map.end());
-
-    const char* comparray[] = { "renderer", "physics" };
-    tecs::archetype_t::define(comparray, 0, 2);
-
-    tecs::archetype_t::define("1111", "2222", "3333");
-
-    //constexpr auto tname = tecs::caller::type_name_id<int>();
-    //std::cout << tname << std::endl;
-    //tecs::caller::type_name_id<char>();
-    //tecs::caller::type_name_id<float>();
-
-    constexpr auto r1 = tecs::caller::sort_type_sequence<int, char, float>();
-    std::cout << typeid(decltype(r1)).name() << std::endl;
-    constexpr auto r2 = tecs::caller::sort_type_sequence<int, float, char>();
-    std::cout << typeid(decltype(r2)).name() << std::endl;
-    constexpr auto r3 = tecs::caller::sort_type_sequence<float, char, int>();
-    std::cout << typeid(decltype(r3)).name() << std::endl;
+    
+    //constexpr auto r1 = tecs::preconst::sort_type_sequence<int, char, float>();
+    //std::cout << typeid(decltype(r1)).name() << std::endl;
+    //constexpr auto r2 = tecs::preconst::sort_type_sequence<int, float, char>();
+    //std::cout << typeid(decltype(r2)).name() << std::endl;
+    //constexpr auto r3 = tecs::preconst::sort_type_sequence<float, char, int>();
+    //std::cout << typeid(decltype(r3)).name() << std::endl;
 
 
-    //auto k1 = tecs::caller::sort_type_sequence_test<int, char, float>();
+    //auto k1 = tecs::preconst::sort_type_sequence_test<int, char, float>();
     //for (auto i : k1) { std::cout << i << " "; } std::cout << std::endl;
-    //auto k2 = tecs::caller::sort_type_sequence_test<int, float, char>();
+    //auto k2 = tecs::preconst::sort_type_sequence_test<int, float, char>();
     //for (auto i : k2) { std::cout << i << " "; } std::cout << std::endl;
 
-    //auto t1 = tecs::caller::sort_type_sequence_test<int, char, float>();
+    //auto t1 = tecs::preconst::sort_type_sequence_test<int, char, float>();
     //std::cout << typeid(decltype(t1)).name() << std::endl;
-    //auto t2 = tecs::caller::sort_type_sequence_test<int, float, char>();
+    //auto t2 = tecs::preconst::sort_type_sequence_test<int, float, char>();
     //std::cout << typeid(decltype(t2)).name() << std::endl;
 
-    //auto t1 = tecs::caller::sort_index_sequence_test<int, char, float>();
+    //auto t1 = tecs::preconst::sort_index_sequence_test<int, char, float>();
     //for (auto i : t1) { std::cout << i.first << " " << i.second << " "; } std::cout << std::endl;
-    //auto t2 = tecs::caller::sort_index_sequence_test<int, float, char>();
+    //auto t2 = tecs::preconst::sort_index_sequence_test<int, float, char>();
     //for (auto i : t2) { std::cout << i.first << " " << i.second << " "; } std::cout << std::endl;
-    //std::cout << tecs::caller::type_id<int> << " " << tecs::caller::type_id<char> << " " << tecs::caller::type_id<float> << std::endl;
+    //std::cout << tecs::preconst::type_id<int> << " " << tecs::preconst::type_id<char> << " " << tecs::preconst::type_id<float> << std::endl;
 
 
 
-    //auto v1 = tecs::caller::sort_index_sequence<int, char, float>();
+    //auto v1 = tecs::preconst::sort_index_sequence<int, char, float>();
     //for (auto i : v1) { std::cout << i << " "; } std::cout << std::endl;
-    //auto v2 = tecs::caller::sort_index_sequence<int, float, char>();
+    //auto v2 = tecs::preconst::sort_index_sequence<int, float, char>();
     //for (auto i : v2) { std::cout << i << " "; } std::cout << std::endl;
 
     //std::array<int, 3> x1{ 0, 1, 2 };
@@ -66,24 +58,24 @@ int main()
     //for(int i : x1)
     //    std::cout << i << std::endl;
 
-    //std::cout << tecs::caller::sort_type_sequence<int, char, float>() << std::endl;
-    //std::cout << tecs::caller::sort_type_sequence<int, float, char>() << std::endl;
-    //std::cout << tecs::caller::sort_type_sequence<char, float, int>() << std::endl;
-    //std::cout << tecs::caller::sort_type_sequence<char, int, float>() << std::endl;
-    //std::cout << tecs::caller::sort_type_sequence<float, int, char>() << std::endl;
-    //std::cout << tecs::caller::sort_type_sequence<float, char, int>() << std::endl;
+    //std::cout << tecs::preconst::sort_type_sequence<int, char, float>() << std::endl;
+    //std::cout << tecs::preconst::sort_type_sequence<int, float, char>() << std::endl;
+    //std::cout << tecs::preconst::sort_type_sequence<char, float, int>() << std::endl;
+    //std::cout << tecs::preconst::sort_type_sequence<char, int, float>() << std::endl;
+    //std::cout << tecs::preconst::sort_type_sequence<float, int, char>() << std::endl;
+    //std::cout << tecs::preconst::sort_type_sequence<float, char, int>() << std::endl;
 
-    //constexpr tecs::caller::type_id_t cc1 = tecs::caller::type_id<int, char, float>;
+    //constexpr tecs::preconst::type_id_t cc1 = tecs::preconst::type_id<int, char, float>;
     //std::cout << cc1 << std::endl;
-    //constexpr tecs::caller::type_id_t cc2 = tecs::caller::type_id<int, float, char>;
+    //constexpr tecs::preconst::type_id_t cc2 = tecs::preconst::type_id<int, float, char>;
     //std::cout << cc2 << std::endl;
-    //constexpr tecs::caller::type_id_t cc3 = tecs::caller::type_id<char, float, int>;
+    //constexpr tecs::preconst::type_id_t cc3 = tecs::preconst::type_id<char, float, int>;
     //std::cout << cc3 << std::endl;
-    //constexpr tecs::caller::type_id_t cc4 = tecs::caller::type_id<char, int, float>;
+    //constexpr tecs::preconst::type_id_t cc4 = tecs::preconst::type_id<char, int, float>;
     //std::cout << cc4 << std::endl;
-    //constexpr tecs::caller::type_id_t cc5 = tecs::caller::type_id<float, int, char>;
+    //constexpr tecs::preconst::type_id_t cc5 = tecs::preconst::type_id<float, int, char>;
     //std::cout << cc5 << std::endl;
-    //constexpr tecs::caller::type_id_t cc6 = tecs::caller::type_id<float, char, int>;
+    //constexpr tecs::preconst::type_id_t cc6 = tecs::preconst::type_id<float, char, int>;
     //std::cout << cc6 << std::endl;
 
 

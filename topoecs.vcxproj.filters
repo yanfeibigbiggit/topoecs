@@ -39,6 +39,12 @@
     <ClCompile Include="core.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
+    <ClCompile Include="component_defines.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="archetype_defines.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ankerl\stl.h">
@@ -46,6 +52,9 @@
     </ClInclude>
     <ClInclude Include="include\ankerl\unordered_dense.h">
       <Filter>头文件\include\ankerl</Filter>
+    </ClInclude>
+    <ClInclude Include="macros.h">
+      <Filter>头文件\include</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
