@@ -3,81 +3,24 @@
 //
 import std;
 import core;
-
+import archetype_defines;
 
 
 int main()
 {
 
-    //std::cout << tecs::component_a::type_id << " -- " << tecs::component_b::type_id << " " << tecs::component_c::type_id << std::endl;
-    //std::cout << tecs::component_d::type_id << " -- " << tecs::component_e::type_id << " " << tecs::component_f::type_id << std::endl;
-    //std::cout << tecs::component_g::type_id << " -- " << tecs::component_h::type_id << " " << tecs::component_i::type_id << std::endl;
+    std::cout << typeid(transfrom_t).name() << std::endl;
 
-    using t1 = tecs::archetype_t<int, char, float>;
-    std::cout << typeid(t1).name() << std::endl;
-    using t2 = tecs::archetype_t<int, float, char>;
-    std::cout << typeid(t2).name() << std::endl;
-    using t3 = tecs::archetype_t<float, int, char>;
-    std::cout << typeid(t3).name() << std::endl;
+    transfrom_t::set<position_t>();
 
-    
-    //constexpr auto r1 = tecs::preconst::sort_type_sequence<int, char, float>();
-    //std::cout << typeid(decltype(r1)).name() << std::endl;
-    //constexpr auto r2 = tecs::preconst::sort_type_sequence<int, float, char>();
-    //std::cout << typeid(decltype(r2)).name() << std::endl;
-    //constexpr auto r3 = tecs::preconst::sort_type_sequence<float, char, int>();
-    //std::cout << typeid(decltype(r3)).name() << std::endl;
+    //using t1 = tecs::archetype_t<int, char, float>;
+    //std::cout << typeid(t1).name() << std::endl;
+    //using t2 = tecs::archetype_t<int, float, char>;
+    //std::cout << typeid(t2).name() << std::endl;
+    //using t3 = tecs::archetype_t<float, int, char>;
+    //std::cout << typeid(t3).name() << std::endl;
 
-
-    //auto k1 = tecs::preconst::sort_type_sequence_test<int, char, float>();
-    //for (auto i : k1) { std::cout << i << " "; } std::cout << std::endl;
-    //auto k2 = tecs::preconst::sort_type_sequence_test<int, float, char>();
-    //for (auto i : k2) { std::cout << i << " "; } std::cout << std::endl;
-
-    //auto t1 = tecs::preconst::sort_type_sequence_test<int, char, float>();
-    //std::cout << typeid(decltype(t1)).name() << std::endl;
-    //auto t2 = tecs::preconst::sort_type_sequence_test<int, float, char>();
-    //std::cout << typeid(decltype(t2)).name() << std::endl;
-
-    //auto t1 = tecs::preconst::sort_index_sequence_test<int, char, float>();
-    //for (auto i : t1) { std::cout << i.first << " " << i.second << " "; } std::cout << std::endl;
-    //auto t2 = tecs::preconst::sort_index_sequence_test<int, float, char>();
-    //for (auto i : t2) { std::cout << i.first << " " << i.second << " "; } std::cout << std::endl;
-    //std::cout << tecs::preconst::type_id<int> << " " << tecs::preconst::type_id<char> << " " << tecs::preconst::type_id<float> << std::endl;
-
-
-
-    //auto v1 = tecs::preconst::sort_index_sequence<int, char, float>();
-    //for (auto i : v1) { std::cout << i << " "; } std::cout << std::endl;
-    //auto v2 = tecs::preconst::sort_index_sequence<int, float, char>();
-    //for (auto i : v2) { std::cout << i << " "; } std::cout << std::endl;
-
-    //std::array<int, 3> x1{ 0, 1, 2 };
-    //std::array<int, 3> x2{ 4, 2, 1 };
-    //std::ranges::sort(x1, [&](int l, int r) { return x2[l] <= x2[r]; });
-    //for(int i : x1)
-    //    std::cout << i << std::endl;
-
-    //std::cout << tecs::preconst::sort_type_sequence<int, char, float>() << std::endl;
-    //std::cout << tecs::preconst::sort_type_sequence<int, float, char>() << std::endl;
-    //std::cout << tecs::preconst::sort_type_sequence<char, float, int>() << std::endl;
-    //std::cout << tecs::preconst::sort_type_sequence<char, int, float>() << std::endl;
-    //std::cout << tecs::preconst::sort_type_sequence<float, int, char>() << std::endl;
-    //std::cout << tecs::preconst::sort_type_sequence<float, char, int>() << std::endl;
-
-    //constexpr tecs::preconst::type_id_t cc1 = tecs::preconst::type_id<int, char, float>;
-    //std::cout << cc1 << std::endl;
-    //constexpr tecs::preconst::type_id_t cc2 = tecs::preconst::type_id<int, float, char>;
-    //std::cout << cc2 << std::endl;
-    //constexpr tecs::preconst::type_id_t cc3 = tecs::preconst::type_id<char, float, int>;
-    //std::cout << cc3 << std::endl;
-    //constexpr tecs::preconst::type_id_t cc4 = tecs::preconst::type_id<char, int, float>;
-    //std::cout << cc4 << std::endl;
-    //constexpr tecs::preconst::type_id_t cc5 = tecs::preconst::type_id<float, int, char>;
-    //std::cout << cc5 << std::endl;
-    //constexpr tecs::preconst::type_id_t cc6 = tecs::preconst::type_id<float, char, int>;
-    //std::cout << cc6 << std::endl;
-
+   
 
     //std::this_thread::sleep_for(std::chrono::seconds(2));
 

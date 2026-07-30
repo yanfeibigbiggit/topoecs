@@ -143,8 +143,10 @@
   <ItemGroup>
     <ClCompile Include="archetype_defines.ixx" />
     <ClCompile Include="component_defines.ixx" />
+    <ClCompile Include="configs.ixx" />
     <ClCompile Include="core.ixx" />
     <ClCompile Include="src\ankerl\ankerl.unordered_dense.ixx" />
+    <ClCompile Include="temp.ixx" />
     <ClCompile Include="topoecs.cpp" />
     <ClCompile Include="typelist.ixx" />
   </ItemGroup>

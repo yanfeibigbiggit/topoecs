@@ -2,9 +2,9 @@
 #include "ankerl/unordered_dense.h"
 
 export module core;
-
-import std;
 import typelist;
+import configs;
+import std;
 
 using id_t = unsigned int;
 using uint_t = unsigned int;
@@ -141,8 +141,9 @@ namespace tecs
 		}
 	}
 
-	namespace preconst
+	namespace misc
 	{
+		using counter_integer_t = unsigned short;
 		template<typename UniqueTag>
 		struct type_id_counter_t
 		{
@@ -161,6 +162,7 @@ namespace tecs
 				{
 					return N;
 				}
+				constexpr void nothing() {}
 			};
 
 			template<std::size_t N = 0, auto uique = []() {} >
@@ -170,6 +172,7 @@ namespace tecs
 				if constexpr (!defined)
 				{
 					const_counter_writer<N> writer;
+					writer.nothing();
 					return N;
 				}
 				else
@@ -189,44 +192,9 @@ namespace tecs
 		template<typename... Args>
 		constexpr std::size_t type_id_global = type_id_counter_t< type_id_gobal_tag_t>::type_id_t<Args...>::type_id;
 
-		//template<std::size_t N>
-		//struct const_counter_flag
-		//{
-		//	//return must be `auto` for requires statement in const_counter_next()
-		//	friend constexpr auto adl_const_counter_flag(const_counter_flag<N>);
-		//};
-
-		//template<std::size_t N>
-		//struct const_counter_writer
-		//{
-		//	//return must be `auto` for requires statement in const_counter_next()
-		//	friend constexpr auto adl_const_counter_flag(const_counter_flag<N>)
-		//	{
-		//		return N;
-		//	}
-		//};
-
-		//export template<std::size_t N = 0, auto uique = [](){} >
-		//constexpr std::size_t const_counter_next()
-		//{
-		//	constexpr bool defined = requires{ adl_const_counter_flag(const_counter_flag<N>{}); };
-		//	if constexpr (!defined)
-		//	{
-		//		const_counter_writer<N> writer;
-		//		return N;
-		//	}
-		//	else
-		//	{
-		//		return const_counter_next<N + 1>();
-		//	}
-		//}
-
-		//MODULE_EXPORT template<typename ... Derived>
-		//struct type_id_t
-		//{
-		//	static constexpr std::size_t type_id = const_counter_next();
-		//};
-
+		struct type_id_component_tag_t {};
+		template<typename T>
+		constexpr std::size_t type_id_component = misc::type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::type_id;
 
 		template <typename T>
 		constexpr const char* type_name_id()
@@ -275,11 +243,11 @@ namespace tecs
 		}
 
 		template<typename... Args>
-		constexpr auto sort_index_sequence()
+		constexpr auto sort_component_sequence()
 		{
 			constexpr std::size_t N = sizeof...(Args);
 			using index_name_pair = std::pair<std::size_t, std::size_t>;
-			std::array<std::size_t, N> type_array{ type_id_global<Args>... };
+			std::array<std::size_t, N> type_array{ type_id_component<Args>... };
 			std::array<index_name_pair, N> type_index_array;
 			for (int i = 0; i < N; i++)
 			{
@@ -309,22 +277,30 @@ namespace tecs
 			return index_array;
 		}
 
-		//template<typename TList, size_t... I>
-		//constexpr auto make_order_type_sequence(std::index_sequence<I...>)
-		//{
-		//	using type = mpl::typelist<mpl::at<I, TList>::type...>;
-		//	return type{};
-		//}
+		template<typename... Args> struct data_size_of_t;
 
-		//MODULE_EXPORT template<typename... Args>
-		//	constexpr auto sort_type_sequence()
-		//{
-		//	auto tid = make_order_type_sequence<mpl::typelist<Args...>>(
-		//		constexpr_array_to_index_sequence< sort_index_sequence<Args...>()>(
-		//			std::make_index_sequence<sizeof...(Args)>{}));
+		template<typename T, typename... Args>
+		struct data_size_of_t<T, Args...>
+		{
+			enum { value = sizeof(T) + data_size_of_t<Args...>::value };
+		};
 
-		//	return tid;
-		//}
+		template<typename T>
+		struct data_size_of_t<T>
+		{
+			enum { value = sizeof(T) };
+		};
+	}
+
+	namespace maths
+	{
+		constexpr std::size_t round_power_2(std::size_t v)
+		{
+			v = v <= 0 ? 1 : v;
+			int x = 1;
+			while (x <= v) { x *= 2; }
+			return (x - v < v - x / 2) ? x : x / 2;
+		}
 	}
 }
 
@@ -421,165 +397,51 @@ namespace tecs
 		}
 	};
 
-	class chunk_t
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// 
+	////////////////////////////////////////////////////////////////////////////////////////////////
+
+	template<typename... Args>
+	struct archetype_storage_t
 	{
-	private:
-		byte_t* bytes;
-		uint_t chunk;
-	public:
-		chunk_t(uint_t element_size_, uint_t count_)
+		using this_type = archetype_storage_t<Args...>;
+		
+		static constexpr std::size_t COUNT_PER_CHUNK = 
+			maths::round_power_2(configs::ARCHETYPE_CHUNK_LENGTH / (misc::data_size_of_t<Args...>::value + sizeof(entity_t)));
+
+		template<typename T>
+		struct column_t
 		{
-			bytes = new byte_t[element_size_ * count_];
-		}
-		~chunk_t()
-		{
-			if (bytes != nullptr)
-			{
-				delete[] bytes;
-				bytes = nullptr;
-			}
-		}
-
-		inline void add(uint_t index_, byte_t* src_, uint_t element_size_)
-		{
-			std::copy(src_, src_ + element_size_, bytes + index_ * element_size_);
-		}
-	};
-
-	class paged_array_t
-	{
-	public:
-		uint_t bytes_per_element;
-		uint_t elements_per_chunk;
-
-		const uint_t CHUNK_BYTE_SIZE = 1 << 16;
-
-		paged_array_t(uint_t bytes_per_element_, uint_t elements_per_chunk_)
-		{
-			bytes_per_element = bytes_per_element_;
-			elements_per_chunk = elements_per_chunk_;
-		}
-
-		void add(uint_t id, byte_t* src, uint_t start_)
-		{
-			auto chunk_id = id & elements_per_chunk;
-		}
-
-	};
-
-	template<typename Comp>
-	class sparse_set_t
-	{
-		std::vector<short> sparse_array;
-		std::vector<entity_t> dense_array;
-	};
-
-
-	MODULE_EXPORT enum basic_type_t : byte_t
-	{
-		int8,
-		uint8,
-		int16,
-		uint16,
-		int32,
-		uint32,
-		int64,
-		uint64,
-		int128,
-		uint128,
-		float16,
-		float32,
-		float64,
-		float128,
-		//1 byte char
-		char1,
-		//2 byte char
-		char2,
-		//4 byte char
-		char4,
-		//8 byte char
-		char8,
-		//16 byte char
-		char16,
-		//32 byte char
-		char32,
-		//64 byte char
-		char64,
-		//128 byte char
-		char128,
-
-		//indirect int index, variadic string
-		string,    
-		//indirect int index, variadic byte array
-		bytearray, 
-	};
-	
-	uint_t get_basic_type_size(basic_type_t e)
-	{             
-        static const int layout[] = {
-			             //    int8, uint8, int16, uint16, int32, uint32, int64, uint64, int128, uint128
-			                   1,    1,     2,     2,      4,     4,      8,     8,      16,     16,
-		                 //    float16, float32, float64, float128,
-                               2,       4,       8,       16,
-                         //    char1, char2, char4, char8, char16, char64, char128
-			                   1,     2,     4,     8,     16,     64,     128,
-			             //    string, bytearray
-			                   4,     4,
-		                       };
-		return layout[e];
-	}
-
-	MODULE_EXPORT const xstring& get_basic_type_name(basic_type_t t)
-	{
-		static const xstring names[] =
-		{
-			"int8",
-			"uint8",
-			"int16",
-			"uint16",
-			"int32",
-			"uint32",
-			"int64",
-			"uint64",
-			"int128",
-			"uint128",
-			"float16",
-			"float32",
-			"float64",
-			"float128",
-			"char1",
-			"char2",
-			"char4",
-			"char8",
-			"char16",
-			"char32",
-			"char64",
-			"char128",
-
-			"string",    
-			"bytearray", 
+			std::array<T, COUNT_PER_CHUNK> values;
+			
+			//T& operator[](std::size_t index)
+			//{
+			//	return values[index];
+			//}
 		};
 
-		return names[t];
-	}
+		struct chunk_t : column_t<Args>...
+		{
+			column_t<entity_t> entities;
 
-	//////////////////////////////////////////////////////////////////////////////////////////////
-	// 
-	//////////////////////////////////////////////////////////////////////////////////////////////
+			template<typename T>
+			auto& column()
+			{
+				return column_t<T>::values;
+			}
+		};
 
+		struct sparse_set_t
+		{
 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	template<typename... Args>
-	struct archetype_stoarge_t
-	{
-		using this_type = archetype_stoarge_t<Args...>;
+		};
 
 	private:
+		static chunk_t columns;
 
 	public:
-		static void name() { std::cout << preconst::type_name_id<this_type>() << std::endl; }
+		static void name() { std::cout << misc::type_name_id<this_type>() << std::endl; }
 
 		template<typename... Args>
 		static void add(Args...args) 
@@ -587,8 +449,15 @@ namespace tecs
 			
 		}
 
+		template<typename T>
+		static void set()
+		{
+			//auto a = columns.column<T>();
+		}
+
 	public:
 	};
+	template<typename... Args> typename archetype_storage_t<Args...>::chunk_t archetype_storage_t<Args...>::columns;
 
 	template<typename... Args>
 	struct archetype_define_t
@@ -597,7 +466,7 @@ namespace tecs
 		static constexpr auto apply()
 		{
 			constexpr auto storage = apply_impl(
-				preconst::constexpr_array_to_index_sequence< preconst::sort_index_sequence<Args...>() >(
+				misc::constexpr_array_to_index_sequence< misc::sort_component_sequence<Args...>() >(
 					std::make_index_sequence<sizeof...(Args)>{}));
 
 			return storage;
@@ -607,9 +476,11 @@ namespace tecs
 		static constexpr auto apply_impl(std::index_sequence<I...>)
 		{
 			using origin_sequence_t = mpl::typelist<Args...>;
-			using type = archetype_stoarge_t<mpl::at<I, origin_sequence_t>::type...>;
+			using type = archetype_storage_t<mpl::at<I, origin_sequence_t>::type...>;
 			return type{};
 		}
+
+
 
 	public:
 		using type = decltype(apply());
@@ -624,7 +495,7 @@ namespace tecs
 
 	};
 
-	MODULE_EXPORT template<typename WorldCode>
+	MODULE_EXPORT template<typename UniqueTag>
 	struct world_t
 	{
 
