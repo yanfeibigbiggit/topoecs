@@ -3,15 +3,16 @@
 //
 import std;
 import core;
-import componnet_defines;
+import component_defines;
 import archetype_defines;
 
 
 int main()
 {
-    tecs::misc::type_map_t<1>::push<1>();
-    std::cout << "has<1>: " << tecs::misc::type_map_t<1>::has<1>() << std::endl;
-    std::cout << "has<2>: " << tecs::misc::type_map_t<1>::has<2>() << std::endl;
+    //std::cout << transfrom_t::this_id << " -- " << hurtable_unit_t::assure_type_mapping << std::endl;
+    //tecs::misc::type_map_t<attribute_base_t>::push< hurtable_unit_t::this_id>();
+    std::cout << "has<fightable_unit_t::this_id>: " << tecs::misc::type_map_t<attribute_base_t>::has<hurtable_unit_t::this_id>() << std::endl;
+    
 
     //std::cout << typeid(transfrom_t).name() << std::endl;
     //std::cout << typeid(transfrom_t2).name() << std::endl;

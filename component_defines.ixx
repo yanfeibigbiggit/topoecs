@@ -1,4 +1,4 @@
-export module componnet_defines;
+export module component_defines;
 
 
 export struct entity_t

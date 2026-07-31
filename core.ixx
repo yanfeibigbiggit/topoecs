@@ -29,12 +29,12 @@ namespace tecs
 		//>>>>>>>> is_std_string_v
 		template<typename> struct is_std_string_type : std::false_type {};
 
-		template<> struct is_std_string_type<std::string> : std::true_type {};
-		template<> struct is_std_string_type<const std::string> : std::true_type {};
-		template<> struct is_std_string_type<std::string&> : std::true_type {};
-		template<> struct is_std_string_type<const std::string&> : std::true_type {};
-		template<> struct is_std_string_type<std::string&&> : std::true_type {};
-		template<> struct is_std_string_type<const std::string&&> : std::true_type {};
+		template<> struct is_std_string_type<xstring> : std::true_type {};
+		template<> struct is_std_string_type<const xstring> : std::true_type {};
+		template<> struct is_std_string_type<xstring&> : std::true_type {};
+		template<> struct is_std_string_type<const xstring&> : std::true_type {};
+		template<> struct is_std_string_type<xstring&&> : std::true_type {};
+		template<> struct is_std_string_type<const xstring&&> : std::true_type {};
 
 		MODULE_EXPORT template<typename T> constexpr bool is_std_string_v = is_std_string_type<T>::value;
 		//<<<<<<<<
@@ -109,13 +109,15 @@ namespace tecs
 		//<<<<<<<<
 
 		//>>>>>>>> select_if_else_t
-		template<bool, typename TrueResult, typename FalseResult> struct select_if_else_t;
+		template<bool, typename TrueResult, typename FalseResult> struct select_if_else_type;
 
 		template<typename TrueResult, typename FalseResult>
-		struct select_if_else_t<true, TrueResult, FalseResult> { using type = TrueResult; };
+		struct select_if_else_type<true, TrueResult, FalseResult> { using type = TrueResult; };
 
 		template<typename TrueResult, typename FalseResult>
-		struct select_if_else_t<false, TrueResult, FalseResult> { using type = FalseResult; };
+		struct select_if_else_type<false, TrueResult, FalseResult> { using type = FalseResult; };
+
+		MODULE_EXPORT template<bool Cond, typename TrueResult, typename FalseResult> using select_if_else_t = select_if_else_type<Cond, TrueResult, FalseResult>::type;
 		//<<<<<<<<
 
 	}
@@ -144,6 +146,9 @@ namespace tecs
 
 	namespace misc
 	{
+		//////////////////////////////////////////////////////////
+		//type_id_counter_t
+		//////////////////////////////////////////////////////////
 		template<typename UniqueTag>
 		struct type_id_counter_t
 		{
@@ -184,22 +189,36 @@ namespace tecs
 			template<typename ... Args>
 			struct type_id_t
 			{
-				static constexpr std::size_t type_id = const_counter_next();
+				static constexpr std::size_t value = const_counter_next();
 			};
 		};
 
 		struct type_id_gobal_tag_t {};
 		template<typename... Args>
-		constexpr std::size_t type_id_global = type_id_counter_t< type_id_gobal_tag_t>::type_id_t<Args...>::type_id;
+		constexpr std::size_t type_id_global = type_id_counter_t< type_id_gobal_tag_t>::type_id_t<Args...>::value;
 
 		struct type_id_component_tag_t {};
 		export template<typename T>
-		constexpr std::size_t type_id_component = misc::type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::type_id;
+		constexpr std::size_t type_id_component = misc::type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::value;
 
 		struct type_id_archetype_tag_t {};
 		export template<typename T>
-		constexpr std::size_t type_id_archetype = misc::type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::type_id;
+		constexpr std::size_t type_id_archetype = misc::type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::value;
 
+
+		//////////////////////////////////////////////////////////
+		//id_type_t
+		//////////////////////////////////////////////////////////
+		template<std::size_t>
+		struct id_type_t
+		{
+
+		};
+
+
+		//////////////////////////////////////////////////////////
+		//type_name_id
+		//////////////////////////////////////////////////////////
 		template <typename T>
 		constexpr const char* type_name_id()
 		{
@@ -234,6 +253,9 @@ namespace tecs
 			return 0;
 		}
 
+		//////////////////////////////////////////////////////////
+		//sort_index_sequence
+		//////////////////////////////////////////////////////////
 		template<auto Array, size_t... I>
 		constexpr auto constexpr_array_to_index_sequence(std::index_sequence<I...>)
 		{
@@ -251,7 +273,6 @@ namespace tecs
 				type_array[i] += i;
 			}
 
-			//temp. waiting for c++26.
 			for (int i = 0; i < N - 1; i++)
 			{
 				for (int j = 0; j < N - 1 - i; j++)
@@ -273,6 +294,9 @@ namespace tecs
 			return type_array;
 		}
 
+		//////////////////////////////////////////////////////////
+		//data_size_of_t
+		//////////////////////////////////////////////////////////
 		template<typename... Args> struct data_size_of_t;
 
 		template<typename T, typename... Args>
@@ -287,7 +311,10 @@ namespace tecs
 			enum { value = sizeof(T) };
 		};
 
-		export template<std::size_t TKey, std::size_t MAX = configs::ARCHETYPE_TYPE_MAX_COUNT>
+		//////////////////////////////////////////////////////////
+		//type_map_t
+		//////////////////////////////////////////////////////////
+		export template<typename TKey, std::size_t MAX = configs::ARCHETYPE_TYPE_MAX_COUNT>
 		struct type_map_t
 		{
 		private:
@@ -306,27 +333,46 @@ namespace tecs
 				{
 					return N;
 				}
-				void nothing() {}
+				consteval void nothing() {}
 			};
 		public:
-			template<std::size_t N = 0>
-			static void push()
+			template<std::size_t N>
+			[[nodiscard]] static consteval std::size_t push()
 			{ 
 				type_map_writer<N> writer;
 				writer.nothing();
+				return N;
 			}
 
-			template<std::size_t N = 0>
+			template<std::size_t N>
 			static constexpr bool has()
 			{
+				constexpr auto x = N;
 				for (std::size_t i = 0; i < MAX; i++)
 				{
 					constexpr bool defined = requires{ adl_type_map_flag(type_map_flag<N>{}); };
-					if (defined) { return true; }
+					if (defined) 
+					{
+						return true; 
+					}
 				}
 				return false;
 			}
 		};
+
+		//////////////////////////////////////////////////////////
+		//map_component_archetype
+		//////////////////////////////////////////////////////////
+		template<std::size_t ID, typename... TList> struct map_component_archetype;
+
+		template<std::size_t ID, typename T, typename... TList>
+		struct map_component_archetype<ID, mpl::typelist<T, TList...>> : map_component_archetype<ID, mpl::typelist<TList...>>
+		{
+			enum {value = type_map_t<T>::template push<ID>()};
+		};
+
+		template<std::size_t ID>
+		struct map_component_archetype<ID, mpl::nulllist > { enum { value = std::numeric_limits<std::size_t>::max() }; };
 	}
 
 	namespace maths
@@ -439,13 +485,16 @@ namespace tecs
 	// 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 
-	template<typename... Args>
+	export template<typename... Args>
 	struct archetype_storage_t
 	{
 		using this_type = archetype_storage_t<Args...>;
+		static constexpr std::size_t this_id = misc::type_id_archetype<this_type>;
 		
 		static constexpr std::size_t COUNT_PER_CHUNK = 
 			maths::round_power_2(configs::ARCHETYPE_CHUNK_LENGTH / (misc::data_size_of_t<Args...>::value + sizeof(entity_t)));
+
+		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
 
 		template<typename T>
 		struct column_t
@@ -498,8 +547,8 @@ namespace tecs
 	public:
 		static void name() { std::cout << misc::type_name_id<this_type>() << std::endl; }
 
-		template<typename... Args>
-		static void add(Args...args) 
+		template<typename... Ts>
+		static void add(Ts...args) 
 		{
 			
 		}
@@ -514,11 +563,9 @@ namespace tecs
 		template<typename T>
 		static T get()
 		{
-			auto& b = columns.column<T>();
+			const auto& b = columns.column<T>();
 			return b[0];
 		}
-
-	public:
 	};
 	template<typename... Args> typename archetype_storage_t<Args...>::chunk_t archetype_storage_t<Args...>::columns;
 
@@ -542,8 +589,6 @@ namespace tecs
 			using type = archetype_storage_t<mpl::at<I, origin_sequence_t>::type...>;
 			return type{};
 		}
-
-
 
 	public:
 		using type = decltype(apply());
