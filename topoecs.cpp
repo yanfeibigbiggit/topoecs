@@ -9,18 +9,21 @@ import archetype_defines;
 
 int main()
 {
-    //std::cout << transfrom_t::this_id << " -- " << hurtable_unit_t::assure_type_mapping << std::endl;
+    //std::cout << transform_t::this_id << " -- " << hurtable_unit_t::assure_type_mapping << std::endl;
     //tecs::misc::type_map_t<attribute_base_t>::push< hurtable_unit_t::this_id>();
-    std::cout << "has<fightable_unit_t::this_id>: " << tecs::misc::type_map_t<attribute_base_t>::has<hurtable_unit_t::this_id>() << std::endl;
-    
+    //std::cout << "has<transform_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<transform_t::this_id>() << std::endl;
+    //std::cout << "has<fightable_unit_t::this_id>: " << tecs::misc::type_map_t<attribute_base_t>::has<hurtable_unit_t::this_id>() << std::endl;
 
-    //std::cout << typeid(transfrom_t).name() << std::endl;
-    //std::cout << typeid(transfrom_t2).name() << std::endl;
-    //std::cout << typeid(transfrom_t3).name() << std::endl;
-    //std::cout << typeid(transfrom_t4).name() << std::endl;
+    //std::cout << "type_id_archetype<transform_t> " << typeid(id_to_archetype_t<tecs::misc::type_id_archetype<transform_t>>::type).name() << std::endl;
+    //std::cout << "type_id_archetype<hurtable_unit_t> " << typeid(id_to_archetype_t<tecs::misc::type_id_archetype<hurtable_unit_t>>::type).name() << std::endl;
+   
+    //std::cout << typeid(transform_t).name() << std::endl;
+    //std::cout << typeid(transform_t2).name() << std::endl;
+    //std::cout << typeid(transform_t3).name() << std::endl;
+    //std::cout << typeid(transform_t4).name() << std::endl;
 
-    //transfrom_t::set<position_t>(position_t{1, 2, 3});
-    //position_t p = transfrom_t::get<position_t>();
+    //transform_t::set<position_t>(position_t{1, 2, 3});
+    //position_t p = transform_t::get<position_t>();
     //std::cout << p.x << " " << p.y << " " << p.z << std::endl;
 
     //using t1 = tecs::archetype_t<int, char, float>;

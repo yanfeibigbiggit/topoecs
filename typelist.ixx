@@ -238,6 +238,32 @@ namespace tecs
         {
             typedef nulllist type;
         };
+
+        //////////////////////////////////////////////////////////
+        template<typename... TList> struct unpack;
+
+        template<typename T, typename... TList>
+        struct unpack<T, TList...>
+        {
+            using first = T;
+            using rest = unpack<TList...>::type;
+            using type = mpl::concat<first, rest>::type;
+        };
+
+
+        template<typename... Params, template<typename...> class T, typename... TList>
+        struct unpack<T<Params...>, TList...>
+        {
+            using first = typelist<Params...>;
+            using rest = unpack<TList...>::type;
+            using type = mpl::concat<first, rest>::type;
+        };
+
+        template<>
+        struct unpack<>
+        {
+            using type = mpl::nulllist;
+        };
     }
 
 }

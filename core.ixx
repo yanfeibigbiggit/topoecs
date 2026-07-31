@@ -199,21 +199,11 @@ namespace tecs
 
 		struct type_id_component_tag_t {};
 		export template<typename T>
-		constexpr std::size_t type_id_component = misc::type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::value;
+		constexpr std::size_t type_id_component = type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::value;
 
 		struct type_id_archetype_tag_t {};
 		export template<typename T>
-		constexpr std::size_t type_id_archetype = misc::type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::value;
-
-
-		//////////////////////////////////////////////////////////
-		//id_type_t
-		//////////////////////////////////////////////////////////
-		template<std::size_t>
-		struct id_type_t
-		{
-
-		};
+		constexpr std::size_t type_id_archetype = type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::value;
 
 
 		//////////////////////////////////////////////////////////
@@ -292,6 +282,12 @@ namespace tecs
 				type_array[i] >>= halfbits;
 			}
 			return type_array;
+		}
+
+		template<typename... Params, template<typename...> class T>
+		constexpr auto sort_index_sequence(T<Params...>)
+		{
+			return sort_index_sequence<Params...>();
 		}
 
 		//////////////////////////////////////////////////////////
@@ -573,11 +569,14 @@ namespace tecs
 	struct archetype_define_t
 	{
 	private:
+		using unpack_list_t = mpl::no_duplicate<typename mpl::unpack<Args...>::type>::type;
+
 		static constexpr auto apply()
 		{
 			constexpr auto storage = apply_impl(
-				misc::constexpr_array_to_index_sequence< misc::sort_index_sequence<Args...>() >(
-					std::make_index_sequence<sizeof...(Args)>{}));
+				misc::constexpr_array_to_index_sequence < 
+					misc::sort_index_sequence(unpack_list_t{}) > (
+						std::make_index_sequence<mpl::length<unpack_list_t>::value>{}));
 
 			return storage;
 		}
@@ -585,8 +584,7 @@ namespace tecs
 		template<size_t... I>
 		static constexpr auto apply_impl(std::index_sequence<I...>)
 		{
-			using origin_sequence_t = mpl::typelist<Args...>;
-			using type = archetype_storage_t<mpl::at<I, origin_sequence_t>::type...>;
+			using type = archetype_storage_t<mpl::at<I, unpack_list_t>::type...>;
 			return type{};
 		}
 
@@ -610,3 +608,4 @@ namespace tecs
 	};
 
 }
+

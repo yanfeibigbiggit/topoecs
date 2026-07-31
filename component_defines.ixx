@@ -48,3 +48,18 @@ export struct attribute_advance_t
     int defence_physic;
     int defence_elements;
 };
+
+export struct skinrender_t
+{
+    int share_mesh;
+};
+
+export struct movment_t
+{
+    int speed;
+};
+
+export struct animation_t
+{
+    int share_mesh;
+};
