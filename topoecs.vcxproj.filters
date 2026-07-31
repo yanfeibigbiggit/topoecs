@@ -51,6 +51,9 @@
     <ClCompile Include="temp.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
+    <ClCompile Include="type_linear_map.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ankerl\stl.h">

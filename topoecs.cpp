@@ -3,15 +3,24 @@
 //
 import std;
 import core;
+import componnet_defines;
 import archetype_defines;
 
 
 int main()
 {
+    tecs::misc::type_map_t<1>::push<1>();
+    std::cout << "has<1>: " << tecs::misc::type_map_t<1>::has<1>() << std::endl;
+    std::cout << "has<2>: " << tecs::misc::type_map_t<1>::has<2>() << std::endl;
 
-    std::cout << typeid(transfrom_t).name() << std::endl;
+    //std::cout << typeid(transfrom_t).name() << std::endl;
+    //std::cout << typeid(transfrom_t2).name() << std::endl;
+    //std::cout << typeid(transfrom_t3).name() << std::endl;
+    //std::cout << typeid(transfrom_t4).name() << std::endl;
 
-    transfrom_t::set<position_t>();
+    //transfrom_t::set<position_t>(position_t{1, 2, 3});
+    //position_t p = transfrom_t::get<position_t>();
+    //std::cout << p.x << " " << p.y << " " << p.z << std::endl;
 
     //using t1 = tecs::archetype_t<int, char, float>;
     //std::cout << typeid(t1).name() << std::endl;
@@ -19,8 +28,6 @@ int main()
     //std::cout << typeid(t2).name() << std::endl;
     //using t3 = tecs::archetype_t<float, int, char>;
     //std::cout << typeid(t3).name() << std::endl;
-
-   
 
     //std::this_thread::sleep_for(std::chrono::seconds(2));
 

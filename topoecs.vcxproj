@@ -149,6 +149,7 @@
     <ClCompile Include="temp.ixx" />
     <ClCompile Include="topoecs.cpp" />
     <ClCompile Include="typelist.ixx" />
+    <ClCompile Include="type_linear_map.ixx" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ankerl\stl.h" />

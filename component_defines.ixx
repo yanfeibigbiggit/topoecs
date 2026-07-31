@@ -43,6 +43,8 @@ export struct attribute_advance_t
 {
     int hp;
     int mana;
+    int attack_physic;
+    int attack_magic;
     int defence_physic;
     int defence_elements;
 };

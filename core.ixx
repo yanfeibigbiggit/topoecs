@@ -2,9 +2,10 @@
 #include "ankerl/unordered_dense.h"
 
 export module core;
+import std;
+
 import typelist;
 import configs;
-import std;
 
 using id_t = unsigned int;
 using uint_t = unsigned int;
@@ -143,7 +144,6 @@ namespace tecs
 
 	namespace misc
 	{
-		using counter_integer_t = unsigned short;
 		template<typename UniqueTag>
 		struct type_id_counter_t
 		{
@@ -193,8 +193,12 @@ namespace tecs
 		constexpr std::size_t type_id_global = type_id_counter_t< type_id_gobal_tag_t>::type_id_t<Args...>::type_id;
 
 		struct type_id_component_tag_t {};
-		template<typename T>
+		export template<typename T>
 		constexpr std::size_t type_id_component = misc::type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::type_id;
+
+		struct type_id_archetype_tag_t {};
+		export template<typename T>
+		constexpr std::size_t type_id_archetype = misc::type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::type_id;
 
 		template <typename T>
 		constexpr const char* type_name_id()
@@ -230,12 +234,6 @@ namespace tecs
 			return 0;
 		}
 
-		template<size_t... I>
-		constexpr auto index_sequence_to_constexpr_array(std::index_sequence<I...>)
-		{
-			return std::array<size_t, sizeof...(I)>{I...};
-		}
-
 		template<auto Array, size_t... I>
 		constexpr auto constexpr_array_to_index_sequence(std::index_sequence<I...>)
 		{
@@ -243,16 +241,14 @@ namespace tecs
 		}
 
 		template<typename... Args>
-		constexpr auto sort_component_sequence()
+		constexpr auto sort_index_sequence()
 		{
+			constexpr std::size_t halfbits = sizeof(std::size_t) * 4;
 			constexpr std::size_t N = sizeof...(Args);
-			using index_name_pair = std::pair<std::size_t, std::size_t>;
-			std::array<std::size_t, N> type_array{ type_id_component<Args>... };
-			std::array<index_name_pair, N> type_index_array;
+			std::array<std::size_t, N> type_array{ (type_id_component<Args> << halfbits)... };
 			for (int i = 0; i < N; i++)
 			{
-				type_index_array[i].first = i;
-				type_index_array[i].second = type_array[i];
+				type_array[i] += i;
 			}
 
 			//temp. waiting for c++26.
@@ -260,21 +256,21 @@ namespace tecs
 			{
 				for (int j = 0; j < N - 1 - i; j++)
 				{
-					if(type_index_array[j].second > type_index_array[j + 1].second)
+					if(type_array[j] > type_array[j + 1])
 					{
-						auto temp = type_index_array[j + 1];
-						type_index_array[j + 1] = type_index_array[j];
-						type_index_array[j] = temp;
+						auto temp = type_array[j + 1];
+						type_array[j + 1] = type_array[j];
+						type_array[j] = temp;
 					}
 				}
 			}
 
-			std::array<std::size_t, N> index_array;
 			for (int i = 0; i < N; i++)
 			{
-				index_array[i] = type_index_array[i].first;
+				type_array[i] <<= halfbits;
+				type_array[i] >>= halfbits;
 			}
-			return index_array;
+			return type_array;
 		}
 
 		template<typename... Args> struct data_size_of_t;
@@ -289,6 +285,47 @@ namespace tecs
 		struct data_size_of_t<T>
 		{
 			enum { value = sizeof(T) };
+		};
+
+		export template<std::size_t TKey, std::size_t MAX = configs::ARCHETYPE_TYPE_MAX_COUNT>
+		struct type_map_t
+		{
+		private:
+			template<std::size_t N>
+			struct type_map_flag
+			{
+				//return must be `auto` for requires statement in push_type_pair()
+				friend constexpr auto adl_type_map_flag(type_map_flag<N>);
+			};
+
+			template<std::size_t N>
+			struct type_map_writer
+			{
+				//return must be `auto` for requires statement in push_type_pair()
+				friend constexpr auto adl_type_map_flag(type_map_flag<N>)
+				{
+					return N;
+				}
+				void nothing() {}
+			};
+		public:
+			template<std::size_t N = 0>
+			static void push()
+			{ 
+				type_map_writer<N> writer;
+				writer.nothing();
+			}
+
+			template<std::size_t N = 0>
+			static constexpr bool has()
+			{
+				for (std::size_t i = 0; i < MAX; i++)
+				{
+					constexpr bool defined = requires{ adl_type_map_flag(type_map_flag<N>{}); };
+					if (defined) { return true; }
+				}
+				return false;
+			}
 		};
 	}
 
@@ -343,10 +380,10 @@ namespace tecs
 	{
 	private:
 		id_t id_v = 0;
-		entity_t() {}
 	public:
 		static entity_t null;
 	public:
+		entity_t() {}
 		entity_t(uint_t id_, uint_t version_)
 		{
 			id_v = set_version(id_, version_);
@@ -413,11 +450,23 @@ namespace tecs
 		template<typename T>
 		struct column_t
 		{
-			std::array<T, COUNT_PER_CHUNK> values;
+			using container_t = std::array<T, COUNT_PER_CHUNK>;
+			container_t values;
 			
-			//T& operator[](std::size_t index)
-			//{
-			//	return values[index];
+			T& operator[](std::size_t index)
+			{
+				return values[index];
+			}
+			const T& operator[](std::size_t index) const
+			{
+				return values[index];
+			}
+			//container_t::iterator begin() noexcept {
+			//	return values.begin();
+			//}
+
+			//container_t::const_iterator end() const noexcept {
+			//	return values.end();
 			//}
 		};
 
@@ -429,6 +478,12 @@ namespace tecs
 			auto& column()
 			{
 				return column_t<T>::values;
+			}
+
+			template<typename T>
+			void set(T t)
+			{
+				column_t<T>::operator[](0) = t;
 			}
 		};
 
@@ -450,9 +505,17 @@ namespace tecs
 		}
 
 		template<typename T>
-		static void set()
+		static void set(T t)
 		{
-			//auto a = columns.column<T>();
+			//auto& a = columns.column<T>();
+			//a[0] = t;
+			columns.set(t);
+		}
+		template<typename T>
+		static T get()
+		{
+			auto& b = columns.column<T>();
+			return b[0];
 		}
 
 	public:
@@ -466,7 +529,7 @@ namespace tecs
 		static constexpr auto apply()
 		{
 			constexpr auto storage = apply_impl(
-				misc::constexpr_array_to_index_sequence< misc::sort_component_sequence<Args...>() >(
+				misc::constexpr_array_to_index_sequence< misc::sort_index_sequence<Args...>() >(
 					std::make_index_sequence<sizeof...(Args)>{}));
 
 			return storage;
