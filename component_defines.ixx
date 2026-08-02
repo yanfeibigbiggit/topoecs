@@ -1,5 +1,7 @@
-export module component_defines;
+export module tecs:component_defines;
+//#include "configs_macro.h"
 
+import :core;
 
 export struct entity_t
 {
@@ -54,6 +56,11 @@ export struct skinrender_t
     int share_mesh;
 };
 
+export struct vertexrender_t
+{
+    int share_mesh;
+};
+
 export struct movment_t
 {
     int speed;
@@ -61,5 +68,5 @@ export struct movment_t
 
 export struct animation_t
 {
-    int share_mesh;
+    int clip;
 };

@@ -51,7 +51,28 @@
     <ClCompile Include="temp.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="type_linear_map.ixx">
+    <ClCompile Include="query.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="tecs.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="misc.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="mpl.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="maths.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="threads.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="world.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="mpl_std.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
   </ItemGroup>
@@ -63,6 +84,9 @@
       <Filter>头文件\include\ankerl</Filter>
     </ClInclude>
     <ClInclude Include="macros.h">
+      <Filter>头文件\include</Filter>
+    </ClInclude>
+    <ClInclude Include="configs_macro.h">
       <Filter>头文件\include</Filter>
     </ClInclude>
   </ItemGroup>

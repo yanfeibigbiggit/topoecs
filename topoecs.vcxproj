@@ -146,13 +146,21 @@
     <ClCompile Include="component_defines.ixx" />
     <ClCompile Include="configs.ixx" />
     <ClCompile Include="core.ixx" />
+    <ClCompile Include="maths.ixx" />
+    <ClCompile Include="misc.ixx" />
+    <ClCompile Include="mpl.ixx" />
+    <ClCompile Include="mpl_std.ixx" />
+    <ClCompile Include="query.ixx" />
     <ClCompile Include="src\ankerl\ankerl.unordered_dense.ixx" />
+    <ClCompile Include="tecs.ixx" />
     <ClCompile Include="temp.ixx" />
+    <ClCompile Include="threads.ixx" />
     <ClCompile Include="topoecs.cpp" />
     <ClCompile Include="typelist.ixx" />
-    <ClCompile Include="type_linear_map.ixx" />
+    <ClCompile Include="world.ixx" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="configs_macro.h" />
     <ClInclude Include="include\ankerl\stl.h" />
     <ClInclude Include="include\ankerl\unordered_dense.h" />
     <ClInclude Include="macros.h" />

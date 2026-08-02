@@ -2,13 +2,35 @@
 //
 //
 import std;
-import core;
-import component_defines;
-import archetype_defines;
-
+import tecs;
 
 int main()
 {
+
+    std::cout << transform_t::this_id << std::endl;
+    std::cout << hurtable_unit_t::this_id << std::endl;
+    std::cout << movable_unit_t::this_id << std::endl;
+    //std::cout << "has<transform_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<transform_t::this_id>() << std::endl;
+    //std::cout << "has<hurtable_unit_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<hurtable_unit_t::this_id>() << std::endl;
+    //using t1 = archetype_of_id_t<0>::type;
+    //using t2 = archetype_of_id_t<1>::type;
+    using type = tecs::get_archetypes_of_component_t<position_t>::type;
+    std::cout << typeid(type).name() << std::endl;
+
+    //constexpr auto defined = mpl::traits::is_complete_v< archetype_of_id_t<4>>;
+    //std::cout << "defined " << defined << std::endl;
+
+    //transform_t t;
+    //hurtable_unit_t h;
+    //std::cout << tecs::misc::type_id_archetype<hurtable_unit_t> << std::endl;
+    //std::cout << tecs::misc::type_id_archetype<transform_t> << std::endl;
+    //std::cout << typeid(id_to_archetype_t<0>::type).name() << std::endl;
+    //std::cout << typeid(id_to_archetype_t<1>::type).name() << std::endl;
+    //std::cout << typeid(tecs::id_to_archetype_t<tecs::misc::type_id_archetype<hurtable_unit_t>>::type).name() << std::endl;
+
+    //id_to_type_writer_t<float> writer;
+    //std::cout << typeid(id_to_type_hold_t<tecs::misc::type_id_component<float>>::type).name() << std::endl;
+    // 
     //std::cout << transform_t::this_id << " -- " << hurtable_unit_t::assure_type_mapping << std::endl;
     //tecs::misc::type_map_t<attribute_base_t>::push< hurtable_unit_t::this_id>();
     //std::cout << "has<transform_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<transform_t::this_id>() << std::endl;
@@ -16,6 +38,11 @@ int main()
 
     //std::cout << "type_id_archetype<transform_t> " << typeid(id_to_archetype_t<tecs::misc::type_id_archetype<transform_t>>::type).name() << std::endl;
     //std::cout << "type_id_archetype<hurtable_unit_t> " << typeid(id_to_archetype_t<tecs::misc::type_id_archetype<hurtable_unit_t>>::type).name() << std::endl;
+
+    //std::cout << typeid(transform_t).name() << std::endl;
+    //std::cout << typeid(movable_unit_t).name() << std::endl;
+    //std::cout << typeid(hurtable_movable_unit_t).name() << std::endl;
+    //std::cout << typeid(hurtable_movable_anim_unit_t).name() << std::endl;
    
     //std::cout << typeid(transform_t).name() << std::endl;
     //std::cout << typeid(transform_t2).name() << std::endl;
