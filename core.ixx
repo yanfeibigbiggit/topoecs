@@ -110,6 +110,8 @@ namespace tecs
 
 		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
 
+		//using writing_archetype_id = misc::archetype_of_id_writer<this_id, this_type>;
+
 		template<typename T>
 		struct column_t
 		{
@@ -178,6 +180,7 @@ namespace tecs
 			const auto& b = columns.column<T>();
 			return b[0];
 		}
+
 	};
 	template<typename... Args> typename archetype_storage_t<Args...>::chunk_t archetype_storage_t<Args...>::columns;
 
@@ -217,6 +220,8 @@ namespace tecs
 	/// </summary>
 	/// <typeparam name="ID"></typeparam>
 	export template<std::size_t ID> struct archetype_of_id_t;
+
+	export template<typename... Args> struct register_archetype_t;
 }
 
 //namespace NAMESPACE_COMPONENT_ARCHETYPE

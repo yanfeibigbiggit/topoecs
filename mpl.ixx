@@ -1,4 +1,4 @@
-export module tecs:mpl;
+export module mpl;
 
 // Should we use [[msvc::known_semantics]] to tell the compiler that certain
 // type trait specializations have the standard-mandated semantics?
@@ -356,16 +356,16 @@ namespace mpl
 			inline constexpr bool is_all_component_name_v = is_all_component_name_type<Args...>::value;
 		//<<<<<<<<
 
-		//>>>>>>>> select_if_else_t
-		template<bool, typename TrueResult, typename FalseResult> struct select_if_else_type;
+		//>>>>>>>> if_else_t
+		template<bool, typename TrueResult, typename FalseResult> struct if_else_type;
 
 		template<typename TrueResult, typename FalseResult>
-		struct select_if_else_type<true, TrueResult, FalseResult> { using type = TrueResult; };
+		struct if_else_type<true, TrueResult, FalseResult> { using type = TrueResult; };
 
 		template<typename TrueResult, typename FalseResult>
-		struct select_if_else_type<false, TrueResult, FalseResult> { using type = FalseResult; };
+		struct if_else_type<false, TrueResult, FalseResult> { using type = FalseResult; };
 
-		export template<bool Cond, typename TrueResult, typename FalseResult> using select_if_else_t = select_if_else_type<Cond, TrueResult, FalseResult>::type;
+		export template<bool Cond, typename TrueResult, typename FalseResult> using if_else_t = if_else_type<Cond, TrueResult, FalseResult>::type;
 		//<<<<<<<<
 
 		//>>>>>>>> is_complete_t
@@ -376,7 +376,7 @@ namespace mpl
 		struct is_complete_t<T, void_t<decltype(sizeof(T))>> : true_type {};
 
 		export template <typename T>
-			inline constexpr bool is_complete_v = is_complete_t<T>::value;
+		inline constexpr bool is_complete_v = is_complete_t<T>::value;
 		//<<<<<<<<
 
 	}

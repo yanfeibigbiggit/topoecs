@@ -3,19 +3,37 @@
 //
 import std;
 import tecs;
+import typelist;
+
+using sub = mpl::typelist<int, char>;
+using list1 = mpl::typelist<int, char, double>;
+using list2 = mpl::typelist<int, float, char>;
+using list3 = mpl::typelist<char, float>;
+using list4 = mpl::typelist<double, float, long>;
+using list_list = mpl::typelist<list1, list2, list3, list4>;
+using list_sub = mpl::list_has_sub<list_list, mpl::typelist<char, float>>::type;
 
 int main()
 {
-
-    std::cout << transform_t::this_id << std::endl;
-    std::cout << hurtable_unit_t::this_id << std::endl;
-    std::cout << movable_unit_t::this_id << std::endl;
+    tecs::world_t<int>::init();
+    //std::cout << transform_t::this_id << std::endl;
+    //std::cout << hurtable_unit_t::this_id << std::endl;
+    //std::cout << movable_unit_t::this_id << std::endl;
     //std::cout << "has<transform_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<transform_t::this_id>() << std::endl;
     //std::cout << "has<hurtable_unit_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<hurtable_unit_t::this_id>() << std::endl;
     //using t1 = archetype_of_id_t<0>::type;
     //using t2 = archetype_of_id_t<1>::type;
-    using type = tecs::get_archetypes_of_component_t<position_t>::type;
-    std::cout << typeid(type).name() << std::endl;
+
+    std::cout << typeid(list_sub).name() << std::endl;
+
+    //using type22 = tecs::get_archetypes_of_component_t<position_t>::type;
+    //std::cout << typeid(type22).name() << std::endl;
+    //std::cout << typeid(typename mpl::list_has_sub<type22, mpl::typelist<movment_t>>::type).name() << std::endl;
+    //using type33 = mpl::to_list_list<type22>::type;// mpl::at<0, mpl::to_list_list<type22>::type>::type;
+    //std::cout << typeid(type33).name() << " has position_t " << mpl::has<position_t, type33>::value << std::endl;
+    //std::cout << typeid(mpl::list_has_sub<type33, mpl::typelist<animation_t>>::type).name() << std::endl;
+
+    std::cout << typeid(tecs::query_t<position_t>::archetype_list).name() << std::endl;
 
     //constexpr auto defined = mpl::traits::is_complete_v< archetype_of_id_t<4>>;
     //std::cout << "defined " << defined << std::endl;

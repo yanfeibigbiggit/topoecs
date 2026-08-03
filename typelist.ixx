@@ -1,5 +1,7 @@
 export module typelist;
 
+import mpl;
+
 export namespace mpl
 {
     //////////////////////////////////////////////////////////
@@ -73,7 +75,6 @@ export namespace mpl
         enum { value = (A == B) ? B : A + 1 };
     };
 
-    //////////////////////////////////////////////////////////
     template<typename T, typename... TList> struct indexof;
 
     template<typename T, typename H, typename... TList>
@@ -115,6 +116,18 @@ export namespace mpl
         typedef typelist<T, TList...>  type;
     };
 
+    //////////////////////////////////////////////////////////
+//concat L and R. if R is list, unpack it. And never unpack L.
+    template<typename L, typename R> struct concat_right
+    {
+        using type = typelist<L, R>;
+    };
+
+    template<typename L, typename... R>
+    struct concat_right<L, typelist<R...>>
+    {
+        using type = typelist<L, R...>;
+    };
 
 
     //////////////////////////////////////////////////////////
@@ -123,28 +136,27 @@ export namespace mpl
     template<typename T, typename H, typename... TList>
     struct erase<T, typelist<H, TList...> >
     {
-        typedef typename concat<H, typename erase< T, typelist<TList...> >::type>::type type;
+        typedef typename concat_right<H, typename erase< T, typelist<TList...> >::type>::type type;
     };
 
     template<typename T, typename... TList>
     struct erase<T, typelist<T, TList...> >
     {
-        typedef typelist<TList...> type;
+        typedef erase<T, typelist< TList...>>::type type;
     };
 
     template<typename T>
     struct erase<T, nulllist >
     {
         typedef nulllist type;
-    };
+    }; 
 
     //////////////////////////////////////////////////////////
     template<typename T, typename... TList> struct erase_all;
-
     template<typename T, typename H, typename... TList>
     struct erase_all<T, typelist<H, TList...> >
     {
-        typedef typename concat<H, typename erase_all< T, typelist<TList...> >::type>::type type;
+        typedef typename concat_right<H, typename erase_all< T, typelist<TList...> >::type>::type type;
     };
 
     template<typename T, typename... TList>
@@ -160,6 +172,7 @@ export namespace mpl
     };
 
 
+
     //////////////////////////////////////////////////////////
     template<typename T, typename...TList> struct no_duplicate;
 
@@ -170,7 +183,7 @@ export namespace mpl
         typedef typename no_duplicate< typelist<TList...> >::type inner;
         typedef typename erase<T, inner>::type inner_result;
     public:
-        typedef typename concat<T, inner_result>::type type;
+        typedef typename concat_right<T, inner_result>::type type;
     };
 
     template<>
@@ -261,5 +274,57 @@ export namespace mpl
     struct unpack<>
     {
         using type = mpl::nulllist;
+    };
+
+    //////////////////////////////////////////////////////////
+    //imporve with c++17 from here
+    //////////////////////////////////////////////////////////
+
+    //////////////////////////////////////////////////////////
+    template<typename... TList> struct to_list;
+    template<template<typename...> class Pack, typename... TList>
+    struct to_list < Pack<TList...> >
+    {
+        using type = typelist<TList...>;
+    };
+
+    //////////////////////////////////////////////////////////
+    template<typename... TList> struct to_list_list;
+    template<typename... TList>
+    struct to_list_list< typelist<TList...>>
+    {
+        using type = typelist<typename mpl::to_list<TList>::type...>;
+    };
+
+    //////////////////////////////////////////////////////////
+    template<typename TItem, typename... TList> struct has;
+
+    template<typename TItem, typename...TList>
+    struct has<TItem, typelist< TList...>>
+    {
+        enum { value = (is_same_v<TList, TItem> || ... ) };
+    };
+
+    //////////////////////////////////////////////////////////
+    template<typename Main, typename Sub> struct is_sub;
+    //return true if sub is a sub set of main.
+    template<typename... Main, typename... Sub>
+    struct is_sub<typelist<Main...>, typelist<Sub...>>
+    {
+        enum { value = (has<Sub, typelist<Main...>>::value && ...) };
+    };
+
+    template<typename Main, typename Sub>
+    constexpr inline bool is_sub_v = is_sub<Main, Sub>::value;
+
+    //////////////////////////////////////////////////////////
+    //return list of list that contain all element of sub list
+    template<typename Main, typename Sub> struct list_has_sub;
+
+    template<typename... Main, typename... Sub>
+    struct list_has_sub<typelist<Main...>, typelist<Sub...>>
+    {
+        using temp = typelist< mpl::traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
+        using type = typename erase_all<nulllist, temp>::type;
     };
 }
