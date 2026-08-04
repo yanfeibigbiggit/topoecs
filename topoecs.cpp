@@ -20,7 +20,7 @@ using list_list_unpack = mpl::unpack<list_list>::type;
 
 int main()
 {
-    tecs::world_t<int>::init();
+    tecs::world_t<>::init();
     //std::cout << transform_t::this_id << std::endl;
     //std::cout << hurtable_unit_t::this_id << std::endl;
     //std::cout << movable_unit_t::this_id << std::endl;
@@ -29,7 +29,16 @@ int main()
     //using t1 = archetype_of_id_t<0>::type;
     //using t2 = archetype_of_id_t<1>::type;
 
-
+    auto gen = tecs::id_generator_t<0>{};
+    auto e1 = gen.get();
+    std::cout << e1.get_id() << std::endl;
+    auto e2 = gen.get();
+    std::cout << e2.get_id() << std::endl;
+    e1 = gen.get();
+    std::cout << e1.get_id() << std::endl;
+    gen.recycle(e2);
+    e1 = gen.get();
+    std::cout << e1.get_id() << std::endl;
     //using type22 = tecs::get_archetypes_of_component_t<position_t>::type;
     //std::cout << print_type<type22>() << std::endl;
     //std::cout << typeid(typename mpl::list_has_sub<type22, mpl::typelist<movment_t>>::type).name() << std::endl;
@@ -37,7 +46,7 @@ int main()
     //std::cout << typeid(type33).name() << " has position_t " << mpl::has<position_t, type33>::value << std::endl;
     //std::cout << typeid(mpl::list_has_sub<type33, mpl::typelist<animation_t>>::type).name() << std::endl;
 
-    std::cout << helper::print_type<tecs::query_t<movment_t, attribute_base_t>::archetype_list>() << std::endl;
+    std::cout << helper::print_type<tecs::query_t<movment_t>::archetype_list>() << std::endl;
 
     //constexpr auto defined = mpl::traits::is_complete_v< archetype_of_id_t<4>>;
     //std::cout << "defined " << defined << std::endl;

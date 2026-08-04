@@ -32,7 +32,7 @@ namespace tecs
         };
         
         template<typename... Prev>
-        struct apply_t<configs::ARCHETYPE_TYPE_MAX_COUNT, mpl::typelist<Prev...>>
+        struct apply_t<configs::ARCHETYPES_MAX, mpl::typelist<Prev...>>
         {
             using type = mpl::typelist<Prev...>;
         };
@@ -64,6 +64,11 @@ namespace tecs
         };
     public:
         using archetype_list = typename select_t<unpack_list_t>::type;
+
+        inline void update()
+        {
+
+        }
     };
 
 

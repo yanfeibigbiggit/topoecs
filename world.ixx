@@ -8,7 +8,7 @@ import mpl;
 
 namespace tecs
 {
-    export template<typename UniqueTag>
+    export template<size_t UniqueTag = 0>
     struct world_t
     {
     private:
@@ -25,7 +25,7 @@ namespace tecs
         };
 
         template<>
-        struct archetype_instantiation_t<configs::ARCHETYPE_TYPE_MAX_COUNT> { enum {value =  0 }; };
+        struct archetype_instantiation_t<configs::ARCHETYPES_MAX> { enum {value =  0 }; };
 
     public:
         static constexpr size_t archetypes_count = archetype_instantiation_t<0>::value;

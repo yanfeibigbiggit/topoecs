@@ -177,7 +177,7 @@ namespace tecs
 		//////////////////////////////////////////////////////////
 		//type_map_t
 		//////////////////////////////////////////////////////////
-		export template<typename TKey, size_t MAX = configs::ARCHETYPE_TYPE_MAX_COUNT>
+		export template<typename TKey, size_t MAX = configs::ARCHETYPES_MAX>
 		struct type_map_t
 		{
 		private:
@@ -236,34 +236,6 @@ namespace tecs
 
 		template<size_t ID>
 		struct map_component_archetype<ID, mpl::nulllist > { enum { value = std::numeric_limits<size_t>::max() }; };
-
-
-		////////////////////////////////////////////////////////////
-		////archetype_of_id_flag
-		////////////////////////////////////////////////////////////
-		//export template<size_t N>
-		//struct archetype_of_id_flag
-		//{
-		//	//return must be `auto` for requires statement in const_counter_next()
-		//	friend constexpr auto adl_archetype_id_flag(archetype_of_id_flag<N>);
-		//};
-
-		//export template<size_t N, typename T>
-		//struct archetype_of_id_writer
-		//{
-		//	//return must be `auto` for requires statement in const_counter_next()
-		//	friend constexpr auto adl_archetype_id_flag(archetype_of_id_flag<N>)
-		//	{
-		//		return T{};
-		//	}
-		//	constexpr void nothing() {}
-		//};
-
-		//export template<size_t N>
-		//inline constexpr auto get_archetype_by_id()
-		//{
-		//	return adl_archetype_id_flag(archetype_of_id_flag<N>{});
-		//}
 	}
 }
 

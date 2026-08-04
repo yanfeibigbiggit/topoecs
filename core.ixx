@@ -6,92 +6,125 @@ export module tecs:core;
 import std;
 import typelist;
 import configs;
+import mpl;
 
 import :misc;
 import :maths;
 import :threads;
 
-using id_t = unsigned int;
 using uint_t = unsigned int;
 using byte_t = unsigned char;
+using ushort_t = unsigned short;
 
 using size_t = std::size_t;
 using xstring = std::string;
+template<typename T, size_t N> using xarray = std::array<T, N>;
 //template<typename tkey, typename tvalue> using xmap = ankerl::unordered_dense::map<tkey, tvalue>;
-
 
 namespace tecs
 {
-	const id_t MASK_ID		= 0x00ffffff;
-	const id_t MASK_VERSION	= 0xff000000;
-	const id_t VERSION_ONE = 1 << 24;
+	export using id_t = unsigned long long;
 
-	export const id_t ID_NULL = 0x00ffffff;
+	//64 bit layout: [ARCHETYPE_BITS | UNUSED | VERSION_BITS | ID_BITS]
+	constexpr inline size_t ENTITY_BITS = 64;
+	constexpr inline size_t ID_BITS = configs::ID_BITS;
+	constexpr inline size_t VERSION_BITS = configs::VERSION_BITS;
+	constexpr inline size_t FLAG_BITS = 32 - configs::ARCHETYPE_BITS;
+	constexpr inline size_t ARCHETYPE_BITS = configs::ARCHETYPE_BITS;
 
-	inline uint_t get_id(id_t e) { return e & MASK_ID; }
-	inline id_t set_id(id_t e, uint_t newid) { return e - get_id(e) + newid; }
-	inline id_t get_version(id_t e) { return (e & MASK_VERSION) >> 24; }
-	inline id_t set_version(id_t e, id_t v) { return get_id(e) + (v << 24); }
-	inline id_t incr_version(id_t e) { return e + VERSION_ONE; }
+	constexpr inline size_t ID_MAX = (1 << ID_BITS) - 1;
 
-	enum error_code_t { e_null_pointer, e_negative_integer, e_missing_component };
+	const id_t MASK_ID		= (1 << ID_BITS) - 1;
+	const id_t MASK_VER		= (( 1 << VERSION_BITS) - 1) << ID_BITS;
+	const id_t VER_ONE		= 1 << ID_BITS;
+	const id_t MASK_ARCHE	= ~((1 << (ENTITY_BITS - ARCHETYPE_BITS)) - 1);
+
+	export const id_t ID_NULL = ID_MAX;
+
+	export inline uint_t get_id(id_t e) { return e & MASK_ID; }
+	export inline id_t set_id(id_t e, uint_t newid) { return e - get_id(e) + newid; }
+	export inline uint_t get_version(id_t e) { return (e & MASK_VER) >> ID_BITS; }
+	export inline id_t set_version(id_t e, id_t v) { return (e & ~MASK_VER) + (v << ID_BITS); }
+	export inline id_t incr_version(id_t e) { return e + VER_ONE; }
+	export inline ushort_t get_arche(id_t e) { return (e & MASK_ARCHE) >> (ENTITY_BITS - ARCHETYPE_BITS); }
+	export inline id_t set_arche(id_t e, id_t arche) { return (e & ~MASK_ARCHE) + (arche << (ENTITY_BITS - ARCHETYPE_BITS)); }
+
 	
-
-	export class entity_t
+	export struct entity_t
 	{
 	private:
-		id_t id_v = 0;
+		uint_t arche	: ARCHETYPE_BITS;
+		uint_t flag		: 32 - ARCHETYPE_BITS;
+		uint_t ver		: VERSION_BITS;
+		uint_t id		: ID_BITS;
+
 	public:
 		static entity_t null;
+
 	public:
 		entity_t() {}
-		entity_t(uint_t id_, uint_t version_)
+		entity_t(uint_t id_, uint_t version_, uint_t flag_, uint_t arche_)
 		{
-			id_v = set_version(id_, version_);
+			id = id_; ver = version_; flag = flag_; arche = arche_;
 		}
 
-		uint_t id() { return get_id(id_v); }
-		uint_t version() { return get_version(id_v); }
-	};
-	entity_t entity_t::null = { ID_NULL, 0 };
+		uint_t get_id() { return id; }
+		uint_t get_version() { return ver; }
+		uint_t get_flag() { return flag; }
+		uint_t get_arche() { return arche; }
 
+		void set_id(uint_t id_) { id = id_; }
+		void inc_id() { ++id; }
+		void set_version(uint_t ver_) { ver = ver_; }
+		void inc_version() { ++ver; }
+		void set_flag(uint_t flag_) { flag = flag_; }
+		void set_arche(uint_t arche_) { arche = arche_; }
+
+		bool valid() { return id != ID_NULL; }
+
+		void recycle() { ver = 0; flag = 0; }
+	};
+	entity_t entity_t::null = { ID_NULL, 0, 0, 0 };
+
+	export template<size_t ArcheId>
 	class id_generator_t
 	{
 	private:
-		id_t current;
-		std::queue<id_t> free;
+		entity_t current;
+		std::queue<entity_t> free;
 
 	public:
 		id_generator_t()
 		{
-			current = 0;
+			current = entity_t{ 0,0,0,ArcheId };
 		}
 
-		id_t get()
+		entity_t get()
 		{
-			id_t entity = 0;
 			if (!free.empty())
 			{
-				entity = free.front();
+				auto entity = free.front();
 				free.pop();
+				return  entity;
 			}
 			else
 			{
-				if (current >= ID_NULL)
+				if (current.get_id() >= ID_MAX)
 				{
 					//throw
-					return ID_NULL;
+					return entity_t::null;
 				}
-				entity = current;
-				current += 1;
+				auto entity = current;
+				current.inc_id();
+				return entity;
 			}
-			return entity;
+			
 		}
 
 		void recycle(entity_t e)
 		{
-			id_t id_v = incr_version(e.id());
-			free.push(id_v);
+			e.recycle();
+			free.push(e);
 		}
 	};
 
@@ -106,38 +139,32 @@ namespace tecs
 		static constexpr size_t this_id = misc::type_id_archetype<this_type>;
 		
 		static constexpr size_t COUNT_PER_CHUNK = 
-			maths::round_power_2(configs::ARCHETYPE_CHUNK_LENGTH / (misc::data_size_of_t<Args...>::value + sizeof(entity_t)));
+			maths::round_power_2(configs::ARCHETYPE_CHUNK_LENGTH / (misc::data_size_of_t<Args...>::value + sizeof(entity_t) + sizeof(ushort_t)));
+
+		static constexpr size_t CHUNKS_MAX_COUNT = ID_MAX / COUNT_PER_CHUNK;
 
 		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
-
-		//using writing_archetype_id = misc::archetype_of_id_writer<this_id, this_type>;
 
 		template<typename T>
 		struct column_t
 		{
-			using container_t = std::array<T, COUNT_PER_CHUNK>;
+			using container_t = xarray<T, COUNT_PER_CHUNK>;
 			container_t values;
 			
-			T& operator[](size_t index)
-			{
-				return values[index];
+			container_t::iterator begin() noexcept {
+				return values.begin();
 			}
-			const T& operator[](size_t index) const
-			{
-				return values[index];
-			}
-			//container_t::iterator begin() noexcept {
-			//	return values.begin();
-			//}
 
-			//container_t::const_iterator end() const noexcept {
-			//	return values.end();
-			//}
+			container_t::const_iterator end() const noexcept {
+				return values.end();
+			}
 		};
 
 		struct chunk_t : column_t<Args>...
 		{
 			column_t<entity_t> entities;
+			xarray< ushort_t, COUNT_PER_CHUNK> indexies;
+			size_t length = 0;
 
 			template<typename T>
 			auto& column()
@@ -146,43 +173,71 @@ namespace tecs
 			}
 
 			template<typename T>
-			void set(T t)
+			const auto& column() const
 			{
-				column_t<T>::operator[](0) = t;
+				return column_t<T>::values;
 			}
+
+			//template<typename T>
+			//void set(T t)
+			//{
+			//	//column_t<T>::operator[](0) = t;
+			//}
 		};
 
 		struct sparse_set_t
 		{
+			xarray<chunk_t*, CHUNKS_MAX_COUNT> chunks{}; 
 
+			template<typename T>
+			chunk_t* get_chunk() {
+
+			}
 		};
 
 	private:
-		static chunk_t columns;
+		static sparse_set_t* sparse_set_ptr;
+
+		static sparse_set_t* sparse_set()
+		{
+			if (sparse_set_ptr == nullptr)
+			{
+				spinlock_t spin;
+				spin.lock();
+				if (sparse_set_ptr == nullptr)
+				{
+					sparse_set_ptr = new sparse_set_t();
+				}
+				spin.unlock();
+			}
+			return sparse_set_ptr;
+		}
+
+		static bool allocated() { return sparse_set_ptr != nullptr; }
 
 	public:
 		static void name() { std::cout << misc::type_name_id<this_type>() << std::endl; }
 
 		template<typename... Ts>
-		static void add(Ts...args) 
+		static entity_t add(Ts&&...args) 
 		{
-			
+			auto* sparse = sparse_set();
+
 		}
 
-		template<typename T>
-		static void set(T t)
-		{
-			columns.set(t);
-		}
-		template<typename T>
-		static T get()
-		{
-			const auto& b = columns.column<T>();
-			return b[0];
-		}
-
+		//template<typename T>
+		//static void set(T t)
+		//{
+		//	chunk()->set(t);
+		//}
+		//template<typename T>
+		//static T get(size_t i)
+		//{
+		//	const auto& b = chunk()->column<T>();
+		//	return b[i];
+		//}
 	};
-	template<typename... Args> typename archetype_storage_t<Args...>::chunk_t archetype_storage_t<Args...>::columns;
+	template<typename... Args> typename archetype_storage_t<Args...>::sparse_set_t* archetype_storage_t<Args...>::sparse_set_ptr = nullptr;
 
 	template<typename... Args>
 	struct archetype_define_t
