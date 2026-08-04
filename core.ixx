@@ -32,12 +32,12 @@ namespace tecs
 	constexpr inline size_t FLAG_BITS = 32 - configs::ARCHETYPE_BITS;
 	constexpr inline size_t ARCHETYPE_BITS = configs::ARCHETYPE_BITS;
 
-	constexpr inline size_t ID_MAX = (1 << ID_BITS) - 1;
+	constexpr inline size_t ID_MAX = (1ull << ID_BITS) - 1;
 
-	const id_t MASK_ID		= (1 << ID_BITS) - 1;
-	const id_t MASK_VER		= (( 1 << VERSION_BITS) - 1) << ID_BITS;
-	const id_t VER_ONE		= 1 << ID_BITS;
-	const id_t MASK_ARCHE	= ~((1 << (ENTITY_BITS - ARCHETYPE_BITS)) - 1);
+	const id_t MASK_ID		= (1ull << ID_BITS) - 1;
+	const id_t MASK_VER		= (( 1ull << VERSION_BITS) - 1) << ID_BITS;
+	const id_t VER_ONE		= 1ull << ID_BITS;
+	const id_t MASK_ARCHE	= ~((1ull << (ENTITY_BITS - ARCHETYPE_BITS)) - 1);
 
 	export const id_t ID_NULL = ID_MAX;
 
@@ -62,11 +62,12 @@ namespace tecs
 		static entity_t null;
 
 	public:
-		entity_t() {}
+		entity_t(){}
 		entity_t(uint_t id_, uint_t version_, uint_t flag_, uint_t arche_)
 		{
 			id = id_; ver = version_; flag = flag_; arche = arche_;
 		}
+		//entity_t& operator=(entity_t&& ent) = default;
 
 		uint_t get_id() { return id; }
 		uint_t get_version() { return ver; }
@@ -80,9 +81,16 @@ namespace tecs
 		void set_flag(uint_t flag_) { flag = flag_; }
 		void set_arche(uint_t arche_) { arche = arche_; }
 
-		bool valid() { return id != ID_NULL; }
+		template<uint_t ChunkSize>
+		inline std::pair<uint_t, uint_t> to_chunk()
+		{
+			return { id / ChunkSize, id & (ChunkSize - 1) };
+		}
 
+		bool valid() { return id != ID_NULL; }
 		void recycle() { ver = 0; flag = 0; }
+
+		void print() { std::cout << "id " << id << " ver " << ver << " arche " << arche << std::endl; }
 	};
 	entity_t entity_t::null = { ID_NULL, 0, 0, 0 };
 
@@ -149,54 +157,80 @@ namespace tecs
 		struct column_t
 		{
 			using container_t = xarray<T, COUNT_PER_CHUNK>;
-			container_t values;
-			
-			container_t::iterator begin() noexcept {
-				return values.begin();
-			}
+			container_t values{};
 
-			container_t::const_iterator end() const noexcept {
-				return values.end();
-			}
+			T& operator[](uint_t index) { return values[index]; }
+			const T& operator[](uint_t index) const { return values[index]; }
+			
+			container_t::iterator begin() noexcept { return values.begin(); }
+
+			container_t::const_iterator end() const noexcept { return values.end(); }
+
+			
 		};
+		//using container_t = typename column_t<T>::container_t;
 
 		struct chunk_t : column_t<Args>...
 		{
 			column_t<entity_t> entities;
 			xarray< ushort_t, COUNT_PER_CHUNK> indexies;
-			size_t length = 0;
+			uint_t length = 0;
+		public:
+			template<typename T> auto& column() { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
+
+			template<typename T> const auto& column() const { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
 			template<typename T>
-			auto& column()
+			void get(uint_t array_index, T&& arg)
 			{
-				return column_t<T>::values;
+				auto& container = column<mpl::traits::remove_qualifier_t<T>>();
+				arg = container[array_index];
 			}
 
 			template<typename T>
-			const auto& column() const
+			void get(uint_t array_index, const T&& arg) const
 			{
-				return column_t<T>::values;
+				const auto& container = column<mpl::traits::remove_qualifier_t<T>>();
+				arg = container[array_index];
 			}
 
-			//template<typename T>
-			//void set(T t)
-			//{
-			//	//column_t<T>::operator[](0) = t;
-			//}
+			template<typename T>
+			void set(uint_t array_index, T&& arg)
+			{
+				auto& container = column<mpl::traits::remove_qualifier_t<T>>();
+				container[array_index] = std::forward<T>(arg);
+			}
 		};
 
 		struct sparse_set_t
 		{
+		private:
 			xarray<chunk_t*, CHUNKS_MAX_COUNT> chunks{}; 
+			
 
-			template<typename T>
-			chunk_t* get_chunk() {
-
+		public:
+			inline chunk_t* get_chunk(uint_t chunk_id) 
+			{
+				chunk_t* chunk_ptr = chunks[chunk_id];
+				if (nullptr == chunk_ptr)
+				{
+					spinlock_t spin;
+					spin.lock();
+					if (nullptr == chunk_ptr)
+					{
+						chunk_ptr = new chunk_t{};
+						chunks[chunk_id] = chunk_ptr;
+					}
+					spin.unlock();
+				}
+				return chunk_ptr;
 			}
+
 		};
 
 	private:
 		static sparse_set_t* sparse_set_ptr;
+		static id_generator_t<this_id> id_generator;
 
 		static sparse_set_t* sparse_set()
 		{
@@ -219,25 +253,31 @@ namespace tecs
 		static void name() { std::cout << misc::type_name_id<this_type>() << std::endl; }
 
 		template<typename... Ts>
-		static entity_t add(Ts&&...args) 
+		static entity_t create(Ts&&...args) 
 		{
-			auto* sparse = sparse_set();
+			entity_t ent = id_generator.get();
+			auto [ chunk_id, index] = ent.to_chunk< COUNT_PER_CHUNK>();
+			sparse_set_t* sparse = sparse_set();
+			chunk_t* chunk = sparse->get_chunk(chunk_id);
 
+			chunk->indexies[index] = chunk->length;
+			chunk->entities[chunk->length] = std::move(ent);
+			(chunk->set<Ts>(chunk->length, std::forward<Ts>(args)), ...);
+
+			return ent;
 		}
 
-		//template<typename T>
-		//static void set(T t)
-		//{
-		//	chunk()->set(t);
-		//}
-		//template<typename T>
-		//static T get(size_t i)
-		//{
-		//	const auto& b = chunk()->column<T>();
-		//	return b[i];
-		//}
+		template<typename... Ts>
+		static void get(entity_t ent, Ts&&... args)
+		{
+			auto [chunk_id, index] = ent.to_chunk< COUNT_PER_CHUNK>();
+			sparse_set_t* sparse = sparse_set();
+			chunk_t* chunk = sparse->get_chunk(chunk_id);
+			((chunk->get<Ts>(index, std::forward<Ts>(args))), ...);
+		}
 	};
 	template<typename... Args> typename archetype_storage_t<Args...>::sparse_set_t* archetype_storage_t<Args...>::sparse_set_ptr = nullptr;
+	template<typename... Args> id_generator_t< archetype_storage_t<Args...>::this_id>  archetype_storage_t<Args...>::id_generator{};
 
 	template<typename... Args>
 	struct archetype_define_t
@@ -271,18 +311,12 @@ namespace tecs
 
 	/// <summary>
 	/// forward declare for archetype_defines and query.
-	/// put it here so query don't need to import archetype_defines
+	/// put it here so query don't need to import archetype_defines directly.
 	/// </summary>
 	/// <typeparam name="ID"></typeparam>
 	export template<std::size_t ID> struct archetype_of_id_t;
-
-	export template<typename... Args> struct register_archetype_t;
 }
 
-//namespace NAMESPACE_COMPONENT_ARCHETYPE
-//{
-
-//}
 
 
 

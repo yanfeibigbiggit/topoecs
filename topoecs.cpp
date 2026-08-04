@@ -18,6 +18,14 @@ using list_list_list = mpl::typelist<list_list>;
 using list_sub = mpl::list_has_sub<list_list, mpl::typelist<char, float>>::type;
 using list_list_unpack = mpl::unpack<list_list>::type;
 
+struct AAA { int a = 0; int b = 0; };
+
+void get_ref(int& a)
+{
+    static int s = 20;
+    a = s;
+}
+
 int main()
 {
     tecs::world_t<>::init();
@@ -29,16 +37,12 @@ int main()
     //using t1 = archetype_of_id_t<0>::type;
     //using t2 = archetype_of_id_t<1>::type;
 
-    auto gen = tecs::id_generator_t<0>{};
-    auto e1 = gen.get();
-    std::cout << e1.get_id() << std::endl;
-    auto e2 = gen.get();
-    std::cout << e2.get_id() << std::endl;
-    e1 = gen.get();
-    std::cout << e1.get_id() << std::endl;
-    gen.recycle(e2);
-    e1 = gen.get();
-    std::cout << e1.get_id() << std::endl;
+    auto ent = transform_t::create(position_t{ 1,2,3 });
+    ent.print();
+    position_t p{};
+    position_t& pos = p;
+    transform_t::get(ent, pos);
+    std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
     //using type22 = tecs::get_archetypes_of_component_t<position_t>::type;
     //std::cout << print_type<type22>() << std::endl;
     //std::cout << typeid(typename mpl::list_has_sub<type22, mpl::typelist<movment_t>>::type).name() << std::endl;
