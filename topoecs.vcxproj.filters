@@ -75,6 +75,9 @@
     <ClCompile Include="mpl_std.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
+    <ClCompile Include="helper.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="include\ankerl\stl.h">

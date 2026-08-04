@@ -4,6 +4,7 @@
 import std;
 import tecs;
 import typelist;
+import helper;
 
 using sub = mpl::typelist<int, char>;
 using list1 = mpl::typelist<int, char, double>;
@@ -11,7 +12,11 @@ using list2 = mpl::typelist<int, float, char>;
 using list3 = mpl::typelist<char, float>;
 using list4 = mpl::typelist<double, float, long>;
 using list_list = mpl::typelist<list1, list2, list3, list4>;
+using list_list_12 = mpl::typelist<list1, list2>;
+using list_list_34 = mpl::typelist<list3, list4>;
+using list_list_list = mpl::typelist<list_list>;
 using list_sub = mpl::list_has_sub<list_list, mpl::typelist<char, float>>::type;
+using list_list_unpack = mpl::unpack<list_list>::type;
 
 int main()
 {
@@ -24,16 +29,15 @@ int main()
     //using t1 = archetype_of_id_t<0>::type;
     //using t2 = archetype_of_id_t<1>::type;
 
-    std::cout << typeid(list_sub).name() << std::endl;
 
     //using type22 = tecs::get_archetypes_of_component_t<position_t>::type;
-    //std::cout << typeid(type22).name() << std::endl;
+    //std::cout << print_type<type22>() << std::endl;
     //std::cout << typeid(typename mpl::list_has_sub<type22, mpl::typelist<movment_t>>::type).name() << std::endl;
     //using type33 = mpl::to_list_list<type22>::type;// mpl::at<0, mpl::to_list_list<type22>::type>::type;
     //std::cout << typeid(type33).name() << " has position_t " << mpl::has<position_t, type33>::value << std::endl;
     //std::cout << typeid(mpl::list_has_sub<type33, mpl::typelist<animation_t>>::type).name() << std::endl;
 
-    std::cout << typeid(tecs::query_t<position_t>::archetype_list).name() << std::endl;
+    std::cout << helper::print_type<tecs::query_t<movment_t, attribute_base_t>::archetype_list>() << std::endl;
 
     //constexpr auto defined = mpl::traits::is_complete_v< archetype_of_id_t<4>>;
     //std::cout << "defined " << defined << std::endl;

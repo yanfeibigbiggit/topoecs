@@ -7,7 +7,7 @@ namespace tecs
         /// <summary>
         /// The maximum limit for the total number of archetypes; exceeding this limit will result in unpredictable behavior.
         /// </summary>
-        export inline const unsigned int ARCHETYPE_TYPE_MAX_COUNT = 5;
+        export inline const unsigned int ARCHETYPE_TYPE_MAX_COUNT = 1024;
         /// <summary>
         /// The memory size of a chunk holding the archetype. 
         /// The actual allocated memory will be the value closest to this size, determined by the archetype count (aligned to a power of 2).

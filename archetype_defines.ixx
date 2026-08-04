@@ -15,6 +15,19 @@ import :misc;
 // add archetypes here.
 // examples
 ////////////////////////////////////////////////////////////////
+export using abt = tecs::archetype_t<at, bt>;
+REGISTER_STATIC_ARCHETYPE(abt);
+export using abct = tecs::archetype_t<at, bt, ct>;
+REGISTER_STATIC_ARCHETYPE(abct);
+export using bct = tecs::archetype_t<bt, ct>;
+REGISTER_STATIC_ARCHETYPE(bct);
+export using bcdt = tecs::archetype_t<bt, ct,dt>;
+REGISTER_STATIC_ARCHETYPE(bcdt);
+export using ght = tecs::archetype_t<gt, ht>;
+REGISTER_STATIC_ARCHETYPE(ght);
+export using aght = tecs::archetype_t<at, gt, ht>;
+REGISTER_STATIC_ARCHETYPE(aght);
+
 export using transform_t = tecs::archetype_t<position_t, rotation_t, scale_t>;
 REGISTER_STATIC_ARCHETYPE(transform_t);
 

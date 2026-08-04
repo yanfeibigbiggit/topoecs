@@ -117,7 +117,7 @@ export namespace mpl
     };
 
     //////////////////////////////////////////////////////////
-//concat L and R. if R is list, unpack it. And never unpack L.
+    //concat L and R. if R is list, unpack it. And never unpack L.
     template<typename L, typename R> struct concat_right
     {
         using type = typelist<L, R>;

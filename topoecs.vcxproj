@@ -146,6 +146,7 @@
     <ClCompile Include="component_defines.ixx" />
     <ClCompile Include="configs.ixx" />
     <ClCompile Include="core.ixx" />
+    <ClCompile Include="helper.ixx" />
     <ClCompile Include="maths.ixx" />
     <ClCompile Include="misc.ixx" />
     <ClCompile Include="mpl.ixx" />

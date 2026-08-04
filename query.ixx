@@ -47,35 +47,14 @@ namespace tecs
         using unpack_list_t = mpl::no_duplicate<typename mpl::unpack<Args...>::type>::type;
 
         template<typename... TList> struct select_t;
-        //template<typename T, typename... TList>
-        //struct select_t<mpl::typelist<T, TList...>>
-        //{
-        //    //using temp1 = typename get_archetypes_of_component_t<T>::type;
-        //    //using temp2 = mpl::to_list_list<temp1>::type;
-        //    //using temp3 = typename mpl::list_has_sub<temp2, unpack_list_t>::type;
-        //    //using temp4 = typename mpl::concat_right< temp3, typename select_t<mpl::typelist<TList...>>::type>::type;
-        //    //using temp5 = mpl::no_duplicate<temp4>::type;
-        //    //using type = temp5;
 
-        //    using temp3 = typename mpl::list_has_sub<typename mpl::to_list_list<typename get_archetypes_of_component_t<T>::type>::type, unpack_list_t>::type;
-        //    using temp4 = typename mpl::concat_right< temp3, typename select_t<mpl::typelist<TList...>>::type>::type;
-        //    using temp5 = mpl::no_duplicate<temp4>::type;
-        //    using type = temp5;
-        //};
-
-        template<typename... TList>
-        struct select_t<mpl::typelist<TList...>>
+        template<typename T, typename... TList>
+        struct select_t<mpl::typelist<T, TList...>>
         {
-            using temp1 = mpl::typelist<
-                            typename mpl::unpack< 
-                                typename mpl::list_has_sub<
-                                    typename mpl::to_list_list<typename get_archetypes_of_component_t<TList>::type>::type, 
-                                    unpack_list_t
-                                                          >::type
-                                                >::type...
-                          >;
-            using temp2 = mpl::no_duplicate<temp1>::type;
-            using type = mpl::erase_all<mpl::nulllist, temp2>::type;
+            using type = typename mpl::list_has_sub<
+                typename mpl::to_list_list<typename get_archetypes_of_component_t<T>::type>::type,
+                unpack_list_t
+                                                   >::type;
         };
 
         template<>
