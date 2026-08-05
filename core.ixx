@@ -21,6 +21,7 @@ using ushort_t = unsigned short;
 using size_t = std::size_t;
 using xstring = std::string;
 template<typename T, size_t N> using xarray = std::array<T, N>;
+template<typename T> using xvector = std::vector<T>;
 //template<typename tkey, typename tvalue> using xmap = ankerl::unordered_dense::map<tkey, tvalue>;
 
 namespace tecs
@@ -139,9 +140,6 @@ namespace tecs
 	};
 
 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	// 
-	////////////////////////////////////////////////////////////////////////////////////////////////
 	export enum e_archelayout
 	{
 		sparse_set,
@@ -153,7 +151,9 @@ namespace tecs
 	{
 		const e_archelayout layout = Layout;
 	};
-
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	// 
+	////////////////////////////////////////////////////////////////////////////////////////////////
 	template<typename... Args>
 	struct archetype_storage_t
 	{
@@ -161,7 +161,7 @@ namespace tecs
 		static constexpr size_t this_id = misc::type_id_archetype<this_type>;
 		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
 
-		static constexpr size_t INDEX_NULL = std::numeric_limits<uint_t>::max();
+		static constexpr size_t SPARSE_INDEX_NULL = std::numeric_limits<uint_t>::max();
 
 		static constexpr size_t ROW_SIZE = (misc::data_size_of_t<Args...>::value + sizeof(entity_t) + sizeof(uint_t));
 
@@ -171,40 +171,30 @@ namespace tecs
 			count = count < 1 ? 1 : count;
 			return count;
 		}
-		static constexpr size_t decide_chunks_max_count()
-		{
-			size_t count = ID_MAX_COUNT / COUNT_PER_CHUNK;
-			if (ROW_SIZE > configs::ARCHETYPE_ROW_BIG_VALUE)
-			{
-				count = maths::round_power_2(configs::ARCHETYPE_CHUNK_ALLOC_LENGTH / configs::ARCHETYPE_ROW_BIG_VALUE);
-			}
-			return count;
-		}
-		
 		static constexpr size_t COUNT_PER_CHUNK = decide_element_per_chunk();
-		static constexpr size_t CHUNKS_MAX_COUNT = decide_chunks_max_count();
 
 		template<typename T>
 		struct column_t
 		{
-			using container_t = xarray<T, COUNT_PER_CHUNK>;
-			container_t values{};
+			using elements_t = xarray<T, COUNT_PER_CHUNK>;
+			elements_t values{};
 
 			T& operator[](uint_t index) { return values[index]; }
 			const T& operator[](uint_t index) const { return values[index]; }
 			
-			container_t::iterator begin() noexcept { return values.begin(); }
+			elements_t::iterator begin() noexcept { return values.begin(); }
 
-			container_t::const_iterator end() const noexcept { return values.end(); }
+			elements_t::const_iterator end() const noexcept { return values.end(); }
 		};
 
-		struct chunk_t : column_t<entity_t>, column_t<Args>...
+		struct chunk_t : column_t<Args>...
 		{
 			using indexies_t = xarray<uint_t, COUNT_PER_CHUNK>;
+
 		private:
-			//column_t<entity_t> entities{};
-			indexies_t indexies = utility::make_array<uint_t, COUNT_PER_CHUNK>(INDEX_NULL);
+			indexies_t indexies = utility::make_array<uint_t, COUNT_PER_CHUNK>(SPARSE_INDEX_NULL);
 			uint_t length = 0;
+
 		public:
 			template<typename T> auto& column() { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
@@ -235,17 +225,12 @@ namespace tecs
 			}
 
 		public:
-			//const entity_t& get_entity(uint_t dense_index) const
-			//{
-			//	return entities[dense_index];
-			//}
-
 			template<typename... Ts>
 			inline bool get_components(entity_t ent, Ts&&...args)
 			{
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
-				if (INDEX_NULL == dense_index)
+				if (SPARSE_INDEX_NULL == dense_index)
 				{ return false; }
 
 				((get_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
@@ -257,7 +242,7 @@ namespace tecs
 			{
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
-				if (INDEX_NULL == dense_index)
+				if (SPARSE_INDEX_NULL == dense_index)
 				{ return false; }
 
 				((get_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
@@ -269,19 +254,19 @@ namespace tecs
 			{
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
-				if (INDEX_NULL == dense_index)
+				if (SPARSE_INDEX_NULL == dense_index)
 				{
 					dense_index = length;
 					indexies[sparse_index] = length;
 					length++;
 				}
-				//entities[dense_index] = std::move(ent);
-				set_component<entity_t>(dense_index, std::move(ent));
 				((set_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
+				//set at last, in case Ts... contain entity_t(not be allowed)
+				set_component<entity_t>(dense_index, std::move(ent));
 			}
 
 			template<typename Lambda, typename... Ts>
-			inline void each(Lambda lambda)
+			inline void each(Lambda&& lambda)
 			{
 				for (uint_t i = 0; i < length; i++)
 				{
@@ -292,19 +277,45 @@ namespace tecs
 
 		struct sparse_set_t
 		{
-			using container_t = xarray<chunk_t*, CHUNKS_MAX_COUNT>;
-			using indexies_t = xarray<uint_t, CHUNKS_MAX_COUNT>;
+			using chunk_ptrs_t = xvector<chunk_t*>;
+			using indexies_t = xvector<uint_t>;
 
 		private:
-			container_t chunks{};
-			indexies_t indexies = utility::make_array<uint_t, CHUNKS_MAX_COUNT>(INDEX_NULL);
+			chunk_ptrs_t chunks;
+			indexies_t indexies;
 			uint_t length = 0;
 
+			uint_t try_dense_id(uint_t chunk_id)
+			{
+				if (chunk_id >= indexies.size())//full then realloc sparse indexies
+				{
+					spinlock_t spin;
+					spin.lock();
+					if (chunk_id >= indexies.size())//double guard
+					{
+						auto newsize = (uint_t)(chunk_id * 1.4);
+						newsize = newsize >= ID_MAX ? ID_MAX - 1 : newsize;
+						indexies.resize(newsize, SPARSE_INDEX_NULL);
+						chunks.resize(newsize);
+					}
+					spin.unlock();
+					return SPARSE_INDEX_NULL;
+				}
+				uint_t dense_id = indexies[chunk_id];
+				return dense_id;
+			}
+
 		public:
+			sparse_set_t()
+			{
+				chunks = chunk_ptrs_t(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT);
+				indexies = indexies_t(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT);
+			}
+
 			inline chunk_t* get_chunk(uint_t chunk_id)
 			{
-				int_t dense_id = indexies[chunk_id];
-				chunk_t* chunk_ptr = dense_id < 0 ? nullptr : chunks[dense_id];
+				uint_t dense_id = try_dense_id(chunk_id);
+				chunk_t* chunk_ptr = SPARSE_INDEX_NULL == dense_id ? nullptr : chunks[dense_id];
 				if (nullptr == chunk_ptr)
 				{
 					spinlock_t spin;
@@ -321,9 +332,9 @@ namespace tecs
 				return chunk_ptr;
 			}
 
-			container_t::iterator begin() noexcept { return chunks.begin(); }
+			chunk_ptrs_t::iterator begin() noexcept { return chunks.begin(); }
 
-			container_t::const_iterator end() const noexcept { return chunks.begin() + length; }
+			chunk_ptrs_t::const_iterator end() const noexcept { return chunks.begin() + length; }
 		};
 
 	private:
@@ -348,12 +359,12 @@ namespace tecs
 		static bool allocated() { return sparse_set_ptr != nullptr; }
 
 		template<typename Lambda, typename... Ts>
-		static void each_impl(Lambda lambda, mpl::typelist<Ts...>)
+		static void each_impl(Lambda&& lambda, mpl::typelist<Ts...>)
 		{
 			sparse_set_t* sparse_ptr = sparse_set();
 			for (auto chunk : *sparse_ptr)
 			{
-				chunk->each<Lambda, Ts...>(lambda);
+				chunk->each<Lambda, Ts...>(std::forward<Lambda>(lambda));
 			}
 		}
 
@@ -375,22 +386,22 @@ namespace tecs
 		template<typename... Ts>
 		static void get(entity_t ent, Ts&&... args)
 		{
-			auto chunk_id= ent.chunk_id< COUNT_PER_CHUNK>();
+			auto chunk_id = ent.chunk_id< COUNT_PER_CHUNK>();
 			sparse_set_t* sparse_ptr = sparse_set();
 			chunk_t* chunk = sparse_ptr->get_chunk(chunk_id);
 			chunk->get_components(ent, std::forward<Ts>(args)...);
 		}
 
 		template<typename... Ts>
-		static void each(void(*ptr)(Ts...))
+		static void each(void(*func)(Ts...))
 		{
-			std::cout<<"ROW_SIZE " << ROW_SIZE << " COUNT_PER_CHUNK " << COUNT_PER_CHUNK << "  CHUNKS_MAX_COUNT " << CHUNKS_MAX_COUNT << std::endl;
-			each_impl(ptr, mpl::typelist<Ts...>{});
+			each_impl(func, mpl::typelist<Ts...>{});
 		}
+
 		template<typename Lambda>
-		static void each(Lambda lambda)
+		static void each(Lambda&& lambda)
 		{
-			using args_type = utility::inspector_callable_t<decltype(&Lambda::operator())>::args_type;
+			using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
 			each_impl(std::forward<Lambda>(lambda), args_type{});
 		}
 
@@ -402,7 +413,7 @@ namespace tecs
 	struct archetype_define_t
 	{
 	private:
-		using unpack_list_t = mpl::no_duplicate<typename mpl::unpack<Args...>::type>::type;
+		using unpack_list_t = mpl::no_duplicate<typename mpl::unpack<entity_t, Args...>::type>::type;
 
 		static constexpr auto apply()
 		{

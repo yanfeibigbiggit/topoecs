@@ -20,7 +20,7 @@ export namespace helper
     }
 
     export template<typename T>
-    inline xstring print_type()
+    inline xstring type_format()
     {
         xstring name = typeid(T).name();
         return replace_all(name, "struct ", "");

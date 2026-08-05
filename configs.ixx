@@ -28,12 +28,10 @@ namespace tecs
         /// The actual allocated memory will be the value closest to this size, determined by the archetype count (aligned to a power of 2).
         /// </summary>
         export inline const size_t ARCHETYPE_CHUNK_ALLOC_LENGTH = 16 * 1024;
-
         /// <summary>
-        /// any archetype row size(total component type size) larger than it, the max chunks count do not grow any more.
-        /// must be power of 2
+        /// the init sparse array count of one sparse set(not chunk)
         /// </summary>
-        export inline const size_t ARCHETYPE_ROW_BIG_VALUE = 256;
+        export inline const size_t ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT = 256;
 
         /// <summary>
         /// type id counter start with, must be greater than 0.

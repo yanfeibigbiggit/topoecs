@@ -56,19 +56,28 @@ export struct attribute_advance_t
 export struct skinrender_t
 {
     int share_mesh;
+    int mat;
+    int texture;
 };
 
 export struct vertexrender_t
 {
     int share_mesh;
+    int mat;
+    int texture;
 };
 
 export struct movment_t
 {
     int speed;
+    int direction;
 };
 
 export struct animation_t
 {
     int clip;
+    int enter_blend;
+    int enter_time;
+    int exit_blend;
+    int exit_time;
 };

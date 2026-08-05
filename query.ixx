@@ -5,10 +5,11 @@ import std;
 import typelist;
 import configs;
 import mpl;
+import helper;
 
 import :core;
 import :misc;
-
+import :utility;
 
 using size_t = std::size_t;
 
@@ -56,12 +57,29 @@ namespace tecs
         {
             using type = mpl::nulllist;
         };
+
     public:
         using archetype_list = typename select_t<unpack_list_t>::type;
 
-        inline void update()
+        template<typename... Ts> struct to_archetype_t;
+        template<typename... Ts>
+        struct to_archetype_t<mpl::typelist<Ts...>>
         {
+            using type = archetype_storage_t<Ts...>;
+        };
+    
+    private:
+        template<typename Lambda, typename... As>
+        static void each_impl(Lambda&& lambda, mpl::typelist<As...>)
+        {
+            ((typename to_archetype_t<As>::type::template each(lambda)), ...);
+        }
 
+    public:
+        template<typename Lambda>
+        static void each(Lambda&& lambda)
+        {
+            each_impl(std::forward<Lambda>(lambda), archetype_list{});
         }
     };
 
