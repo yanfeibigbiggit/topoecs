@@ -27,7 +27,7 @@ namespace tecs
         /// The memory size of a chunk holding the archetype. 
         /// The actual allocated memory will be the value closest to this size, determined by the archetype count (aligned to a power of 2).
         /// </summary>
-        export inline const size_t ARCHETYPE_CHUNK_ALLOC_LENGTH = 8 * 1024;
+        export inline const size_t ARCHETYPE_CHUNK_ALLOC_LENGTH = 16 * 1024;
 
         /// <summary>
         /// any archetype row size(total component type size) larger than it, the max chunks count do not grow any more.

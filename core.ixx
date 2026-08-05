@@ -198,17 +198,19 @@ namespace tecs
 			container_t::const_iterator end() const noexcept { return values.end(); }
 		};
 
-		struct chunk_t : column_t<Args>...
+		struct chunk_t : column_t<entity_t>, column_t<Args>...
 		{
 			using indexies_t = xarray<uint_t, COUNT_PER_CHUNK>;
-
-			column_t<entity_t> entities{};
+		private:
+			//column_t<entity_t> entities{};
 			indexies_t indexies = utility::make_array<uint_t, COUNT_PER_CHUNK>(INDEX_NULL);
 			uint_t length = 0;
 		public:
 			template<typename T> auto& column() { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
 			template<typename T> const auto& column() const { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
+
+			uint_t get_length() { return length; }
 
 		private:
 			template<typename T>
@@ -233,6 +235,11 @@ namespace tecs
 			}
 
 		public:
+			//const entity_t& get_entity(uint_t dense_index) const
+			//{
+			//	return entities[dense_index];
+			//}
+
 			template<typename... Ts>
 			inline bool get_components(entity_t ent, Ts&&...args)
 			{
@@ -268,8 +275,18 @@ namespace tecs
 					indexies[sparse_index] = length;
 					length++;
 				}
-				entities[dense_index] = std::move(ent);
+				//entities[dense_index] = std::move(ent);
+				set_component<entity_t>(dense_index, std::move(ent));
 				((set_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
+			}
+
+			template<typename Lambda, typename... Ts>
+			inline void each(Lambda lambda)
+			{
+				for (uint_t i = 0; i < length; i++)
+				{
+					lambda(std::forward<Ts>(column<Ts>()[i])...);
+				}
 			}
 		};
 
@@ -277,13 +294,14 @@ namespace tecs
 		{
 			using container_t = xarray<chunk_t*, CHUNKS_MAX_COUNT>;
 			using indexies_t = xarray<uint_t, CHUNKS_MAX_COUNT>;
+
 		private:
 			container_t chunks{};
 			indexies_t indexies = utility::make_array<uint_t, CHUNKS_MAX_COUNT>(INDEX_NULL);
 			uint_t length = 0;
 
 		public:
-			inline chunk_t* get_chunk(uint_t chunk_id) 
+			inline chunk_t* get_chunk(uint_t chunk_id)
 			{
 				int_t dense_id = indexies[chunk_id];
 				chunk_t* chunk_ptr = dense_id < 0 ? nullptr : chunks[dense_id];
@@ -329,6 +347,16 @@ namespace tecs
 
 		static bool allocated() { return sparse_set_ptr != nullptr; }
 
+		template<typename Lambda, typename... Ts>
+		static void each_impl(Lambda lambda, mpl::typelist<Ts...>)
+		{
+			sparse_set_t* sparse_ptr = sparse_set();
+			for (auto chunk : *sparse_ptr)
+			{
+				chunk->each<Lambda, Ts...>(lambda);
+			}
+		}
+
 	public:
 		static void name() { std::cout << misc::type_name_id<this_type>() << std::endl; }
 
@@ -337,8 +365,8 @@ namespace tecs
 		{
 			entity_t ent = id_generator.get();
 			auto chunk_id = ent.chunk_id< COUNT_PER_CHUNK>();
-			sparse_set_t* sparse = sparse_set();
-			chunk_t* chunk = sparse->get_chunk(chunk_id);
+			sparse_set_t* sparse_ptr = sparse_set();
+			chunk_t* chunk = sparse_ptr->get_chunk(chunk_id);
 			chunk->set_components(ent, std::forward<Ts>(args)...);
 
 			return ent;
@@ -348,15 +376,24 @@ namespace tecs
 		static void get(entity_t ent, Ts&&... args)
 		{
 			auto chunk_id= ent.chunk_id< COUNT_PER_CHUNK>();
-			sparse_set_t* sparse = sparse_set();
-			chunk_t* chunk = sparse->get_chunk(chunk_id);
+			sparse_set_t* sparse_ptr = sparse_set();
+			chunk_t* chunk = sparse_ptr->get_chunk(chunk_id);
 			chunk->get_components(ent, std::forward<Ts>(args)...);
 		}
 
-		void each()
+		template<typename... Ts>
+		static void each(void(*ptr)(Ts...))
 		{
-
+			std::cout<<"ROW_SIZE " << ROW_SIZE << " COUNT_PER_CHUNK " << COUNT_PER_CHUNK << "  CHUNKS_MAX_COUNT " << CHUNKS_MAX_COUNT << std::endl;
+			each_impl(ptr, mpl::typelist<Ts...>{});
 		}
+		template<typename Lambda>
+		static void each(Lambda lambda)
+		{
+			using args_type = utility::inspector_callable_t<decltype(&Lambda::operator())>::args_type;
+			each_impl(std::forward<Lambda>(lambda), args_type{});
+		}
+
 	};
 	template<typename... Args> typename archetype_storage_t<Args...>::sparse_set_t* archetype_storage_t<Args...>::sparse_set_ptr = nullptr;
 	template<typename... Args> id_generator_t< archetype_storage_t<Args...>::this_id>  archetype_storage_t<Args...>::id_generator{};
@@ -393,7 +430,6 @@ namespace tecs
 
 	/// <summary>
 	/// forward declare for archetype_defines and query.
-	/// put it here so query don't need to import archetype_defines directly.
 	/// </summary>
 	/// <typeparam name="ID"></typeparam>
 	export template<std::size_t ID> struct archetype_of_id_t;
