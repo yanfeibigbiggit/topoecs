@@ -42,7 +42,3 @@ REGISTER_STATIC_ARCHETYPE(hurtable_movable_unit_t);
 
 export using hurtable_movable_anim_unit_t = tecs::archetype_t<hurtable_movable_unit_t, animation_t>;
 REGISTER_STATIC_ARCHETYPE(hurtable_movable_anim_unit_t);
-
-//
-//template<> struct tecs::register_archetype_t<transform_t, hurtable_unit_t, movable_unit_t, hurtable_movable_unit_t, hurtable_movable_anim_unit_t> {};
-//export using archetype_list_t = tecs::register_archetype_t<transform_t, hurtable_unit_t, movable_unit_t, hurtable_movable_unit_t, hurtable_movable_anim_unit_t>;

@@ -2,6 +2,7 @@ export module tecs:component_defines;
 //#include "configs_macro.h"
 
 import :core;
+import std;
 
 export struct at {}; export struct bt {}; export struct ct {}; export struct dt {}; export struct et {}; export struct ft {}; export struct gt {}; export struct ht {};
 
@@ -10,6 +11,11 @@ export struct position_t
     float x;
     float y;
     float z;
+    //position_t() {}
+    //position_t(int xx, int yy, int zz) :x(xx), y(yy), z(zz) { std::cout << "position_t cons" << std::endl; }
+    //position_t(position_t&& other):x(other.x),y(other.y),z(other.z){ std::cout << "position_t move" << std::endl; }
+    //position_t& operator=(position_t& other) { x = other.x; y = other.y; z = other.z; return *this; std::cout << "position_t =&" << std::endl; }
+    //position_t& operator=(position_t&& other) { x = other.x; y = other.y; z = other.z; return *this; std::cout << "position_t =&&" << std::endl; }
 };
 
 export struct rotation_t

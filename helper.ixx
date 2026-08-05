@@ -3,6 +3,9 @@ import std;
 
 using xstring = std::string;
 
+/// <summary>
+/// for user
+/// </summary>
 export namespace helper
 {
     inline xstring replace_all(xstring source, xstring sub, xstring replace)

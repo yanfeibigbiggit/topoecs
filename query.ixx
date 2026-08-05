@@ -30,14 +30,8 @@ namespace tecs
 
             using type = typename apply_t<N + 1, pass_type>::type;
         };
-        
-        template<typename... Prev>
-        struct apply_t<configs::ARCHETYPES_MAX, mpl::typelist<Prev...>>
-        {
-            using type = mpl::typelist<Prev...>;
-        };
 
-        using type = typename apply_t<0, mpl::nulllist, void>::type;
+        using type = typename apply_t<configs::TYPE_ID_START_INDEX, mpl::nulllist, void>::type;
     };
 
     export template<typename... Args>

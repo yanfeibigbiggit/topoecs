@@ -37,7 +37,7 @@ namespace tecs
 				constexpr void nothing() {}
 			};
 
-			template<size_t N = 0, auto uique = []() {} >
+			template<size_t N = configs::TYPE_ID_START_INDEX, auto uique = []() {} >
 			static constexpr size_t const_counter_next()
 			{
 				constexpr bool defined = requires{ adl_const_counter_flag(const_counter_flag<N>{}); };

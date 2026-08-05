@@ -24,11 +24,8 @@ namespace tecs
             enum { value = 1 + archetype_instantiation_t<N+1>::value };
         };
 
-        template<>
-        struct archetype_instantiation_t<configs::ARCHETYPES_MAX> { enum {value =  0 }; };
-
     public:
-        static constexpr size_t archetypes_count = archetype_instantiation_t<0>::value;
+        static constexpr size_t archetypes_count = archetype_instantiation_t<configs::TYPE_ID_START_INDEX>::value;
     public:
         /// <summary>
         /// world::init must be call before any interface/class/function of tecs.

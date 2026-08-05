@@ -11,9 +11,11 @@ import mpl;
 import :misc;
 import :maths;
 import :threads;
+import :utility;
 
+using int_t = int;
 using uint_t = unsigned int;
-using byte_t = unsigned char;
+using short_t = short;
 using ushort_t = unsigned short;
 
 using size_t = std::size_t;
@@ -23,7 +25,7 @@ template<typename T, size_t N> using xarray = std::array<T, N>;
 
 namespace tecs
 {
-	export using id_t = unsigned long long;
+	using id_t = unsigned long long;
 
 	//64 bit layout: [ARCHETYPE_BITS | UNUSED | VERSION_BITS | ID_BITS]
 	constexpr inline size_t ENTITY_BITS = 64;
@@ -32,7 +34,8 @@ namespace tecs
 	constexpr inline size_t FLAG_BITS = 32 - configs::ARCHETYPE_BITS;
 	constexpr inline size_t ARCHETYPE_BITS = configs::ARCHETYPE_BITS;
 
-	constexpr inline size_t ID_MAX = (1ull << ID_BITS) - 1;
+	constexpr inline size_t ID_MAX_COUNT = (1ull << ID_BITS);
+	constexpr inline size_t ID_MAX = ID_MAX_COUNT - 1;
 
 	const id_t MASK_ID		= (1ull << ID_BITS) - 1;
 	const id_t MASK_VER		= (( 1ull << VERSION_BITS) - 1) << ID_BITS;
@@ -81,14 +84,13 @@ namespace tecs
 		void set_flag(uint_t flag_) { flag = flag_; }
 		void set_arche(uint_t arche_) { arche = arche_; }
 
-		template<uint_t ChunkSize>
-		inline std::pair<uint_t, uint_t> to_chunk()
-		{
-			return { id / ChunkSize, id & (ChunkSize - 1) };
-		}
-
 		bool valid() { return id != ID_NULL; }
 		void recycle() { ver = 0; flag = 0; }
+
+		template<uint_t ChunkSize>
+		inline uint_t chunk_id() { return id / ChunkSize; }
+		template<uint_t ChunkSize>
+		inline uint_t sparse_id() { return id & (ChunkSize - 1); }
 
 		void print() { std::cout << "id " << id << " ver " << ver << " arche " << arche << std::endl; }
 	};
@@ -140,18 +142,47 @@ namespace tecs
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// 
 	////////////////////////////////////////////////////////////////////////////////////////////////
+	export enum e_archelayout
+	{
+		sparse_set,
+		singleton
+	};
+
+	template<e_archelayout Layout>
+	struct archepolicy_t
+	{
+		const e_archelayout layout = Layout;
+	};
+
 	template<typename... Args>
 	struct archetype_storage_t
 	{
 		using this_type = archetype_storage_t<Args...>;
 		static constexpr size_t this_id = misc::type_id_archetype<this_type>;
-		
-		static constexpr size_t COUNT_PER_CHUNK = 
-			maths::round_power_2(configs::ARCHETYPE_CHUNK_LENGTH / (misc::data_size_of_t<Args...>::value + sizeof(entity_t) + sizeof(ushort_t)));
-
-		static constexpr size_t CHUNKS_MAX_COUNT = ID_MAX / COUNT_PER_CHUNK;
-
 		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
+
+		static constexpr size_t INDEX_NULL = std::numeric_limits<uint_t>::max();
+
+		static constexpr size_t ROW_SIZE = (misc::data_size_of_t<Args...>::value + sizeof(entity_t) + sizeof(uint_t));
+
+		static constexpr size_t decide_element_per_chunk()
+		{
+			size_t count = maths::round_power_2(configs::ARCHETYPE_CHUNK_ALLOC_LENGTH / ROW_SIZE);
+			count = count < 1 ? 1 : count;
+			return count;
+		}
+		static constexpr size_t decide_chunks_max_count()
+		{
+			size_t count = ID_MAX_COUNT / COUNT_PER_CHUNK;
+			if (ROW_SIZE > configs::ARCHETYPE_ROW_BIG_VALUE)
+			{
+				count = maths::round_power_2(configs::ARCHETYPE_CHUNK_ALLOC_LENGTH / configs::ARCHETYPE_ROW_BIG_VALUE);
+			}
+			return count;
+		}
+		
+		static constexpr size_t COUNT_PER_CHUNK = decide_element_per_chunk();
+		static constexpr size_t CHUNKS_MAX_COUNT = decide_chunks_max_count();
 
 		template<typename T>
 		struct column_t
@@ -165,53 +196,97 @@ namespace tecs
 			container_t::iterator begin() noexcept { return values.begin(); }
 
 			container_t::const_iterator end() const noexcept { return values.end(); }
-
-			
 		};
-		//using container_t = typename column_t<T>::container_t;
 
 		struct chunk_t : column_t<Args>...
 		{
-			column_t<entity_t> entities;
-			xarray< ushort_t, COUNT_PER_CHUNK> indexies;
+			using indexies_t = xarray<uint_t, COUNT_PER_CHUNK>;
+
+			column_t<entity_t> entities{};
+			indexies_t indexies = utility::make_array<uint_t, COUNT_PER_CHUNK>(INDEX_NULL);
 			uint_t length = 0;
 		public:
 			template<typename T> auto& column() { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
 			template<typename T> const auto& column() const { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
+		private:
 			template<typename T>
-			void get(uint_t array_index, T&& arg)
+			inline void get_component(uint_t dense_index, T&& arg)
 			{
-				auto& container = column<mpl::traits::remove_qualifier_t<T>>();
-				arg = container[array_index];
+				auto& container = column<T>();
+				arg = container[dense_index];
 			}
 
 			template<typename T>
-			void get(uint_t array_index, const T&& arg) const
+			inline void get_component(uint_t dense_index, const T&& arg) const
 			{
-				const auto& container = column<mpl::traits::remove_qualifier_t<T>>();
-				arg = container[array_index];
+				const auto& container = column<T>();
+				arg = container[dense_index];
 			}
 
 			template<typename T>
-			void set(uint_t array_index, T&& arg)
+			inline void set_component(uint_t dense_index, T&& arg)
 			{
-				auto& container = column<mpl::traits::remove_qualifier_t<T>>();
-				container[array_index] = std::forward<T>(arg);
+				auto& container = column<T>();
+				container[dense_index] = std::forward<T>(arg);
+			}
+
+		public:
+			template<typename... Ts>
+			inline bool get_components(entity_t ent, Ts&&...args)
+			{
+				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
+				uint_t dense_index = indexies[sparse_index];
+				if (INDEX_NULL == dense_index)
+				{ return false; }
+
+				((get_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
+				return true;
+			}
+
+			template<typename... Ts>
+			inline bool get_components(entity_t ent, const Ts&&... args) const
+			{
+				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
+				uint_t dense_index = indexies[sparse_index];
+				if (INDEX_NULL == dense_index)
+				{ return false; }
+
+				((get_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
+				return true;
+			}
+
+			template<typename... Ts>
+			inline void set_components(entity_t ent, Ts&&...args)
+			{
+				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
+				uint_t dense_index = indexies[sparse_index];
+				if (INDEX_NULL == dense_index)
+				{
+					dense_index = length;
+					indexies[sparse_index] = length;
+					length++;
+				}
+				entities[dense_index] = std::move(ent);
+				((set_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
 			}
 		};
 
 		struct sparse_set_t
 		{
+			using container_t = xarray<chunk_t*, CHUNKS_MAX_COUNT>;
+			using indexies_t = xarray<uint_t, CHUNKS_MAX_COUNT>;
 		private:
-			xarray<chunk_t*, CHUNKS_MAX_COUNT> chunks{}; 
-			
+			container_t chunks{};
+			indexies_t indexies = utility::make_array<uint_t, CHUNKS_MAX_COUNT>(INDEX_NULL);
+			uint_t length = 0;
 
 		public:
 			inline chunk_t* get_chunk(uint_t chunk_id) 
 			{
-				chunk_t* chunk_ptr = chunks[chunk_id];
+				int_t dense_id = indexies[chunk_id];
+				chunk_t* chunk_ptr = dense_id < 0 ? nullptr : chunks[dense_id];
 				if (nullptr == chunk_ptr)
 				{
 					spinlock_t spin;
@@ -219,13 +294,18 @@ namespace tecs
 					if (nullptr == chunk_ptr)
 					{
 						chunk_ptr = new chunk_t{};
-						chunks[chunk_id] = chunk_ptr;
+						indexies[chunk_id] = length;
+						chunks[length] = chunk_ptr;
+						length++;
 					}
 					spin.unlock();
 				}
 				return chunk_ptr;
 			}
 
+			container_t::iterator begin() noexcept { return chunks.begin(); }
+
+			container_t::const_iterator end() const noexcept { return chunks.begin() + length; }
 		};
 
 	private:
@@ -256,13 +336,10 @@ namespace tecs
 		static entity_t create(Ts&&...args) 
 		{
 			entity_t ent = id_generator.get();
-			auto [ chunk_id, index] = ent.to_chunk< COUNT_PER_CHUNK>();
+			auto chunk_id = ent.chunk_id< COUNT_PER_CHUNK>();
 			sparse_set_t* sparse = sparse_set();
 			chunk_t* chunk = sparse->get_chunk(chunk_id);
-
-			chunk->indexies[index] = chunk->length;
-			chunk->entities[chunk->length] = std::move(ent);
-			(chunk->set<Ts>(chunk->length, std::forward<Ts>(args)), ...);
+			chunk->set_components(ent, std::forward<Ts>(args)...);
 
 			return ent;
 		}
@@ -270,10 +347,15 @@ namespace tecs
 		template<typename... Ts>
 		static void get(entity_t ent, Ts&&... args)
 		{
-			auto [chunk_id, index] = ent.to_chunk< COUNT_PER_CHUNK>();
+			auto chunk_id= ent.chunk_id< COUNT_PER_CHUNK>();
 			sparse_set_t* sparse = sparse_set();
 			chunk_t* chunk = sparse->get_chunk(chunk_id);
-			((chunk->get<Ts>(index, std::forward<Ts>(args))), ...);
+			chunk->get_components(ent, std::forward<Ts>(args)...);
+		}
+
+		void each()
+		{
+
 		}
 	};
 	template<typename... Args> typename archetype_storage_t<Args...>::sparse_set_t* archetype_storage_t<Args...>::sparse_set_ptr = nullptr;
