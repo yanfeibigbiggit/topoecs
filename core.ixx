@@ -302,7 +302,7 @@ namespace tecs
 		sparse_set_t()
 		{
 			chunks = chunk_ptrs_t(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT);
-			indexies = indexies_t(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT);
+			indexies = indexies_t(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT, SPARSE_INDEX_NULL);
 		}
 
 		inline chunk_t* get_chunk(uint_t chunk_id)
