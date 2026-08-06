@@ -1,4 +1,4 @@
-export module tecs:threads;
+export module tecs.basic:threads;
 
 import std;
 

@@ -1,4 +1,4 @@
-export module tecs:utility;
+export module tecs.basic:utility;
 
 import typelist;
 import std;

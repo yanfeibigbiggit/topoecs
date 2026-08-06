@@ -1,7 +1,7 @@
-export module tecs:component_defines;
-//#include "configs_macro.h"
+export module component_defines;
 
-import :core;
+import tecs.basic;
+
 import std;
 
 export struct at {}; export struct bt {}; export struct ct {}; export struct dt {}; export struct et {}; export struct ft {}; export struct gt {}; export struct ht {};

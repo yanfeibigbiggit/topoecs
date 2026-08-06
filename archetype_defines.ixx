@@ -1,15 +1,17 @@
-export module tecs:archetype_defines;
-//#include "configs_macro.h"
+export module archetype_defines;
+
+import component_defines;
 
 import std;
+import tecs.basic;
 
-import :core;
-import :component_defines;
-import :misc;
+/// <summary>
+/// forward declare for archetype_defines and query.
+/// </summary>
+/// <typeparam name="ID"></typeparam>
+export template<std::size_t ID> struct archetype_of_id_t;
 
-//export inline constexpr _name  __inline_##_name = _name{};
-
-#define REGISTER_STATIC_ARCHETYPE(_name) export template<> struct tecs::archetype_of_id_t<_name::this_id> { using type = _name; };
+#define REGISTER_STATIC_ARCHETYPE(_name) export template<> struct archetype_of_id_t<_name::this_id> { using type = _name; };
 
 ////////////////////////////////////////////////////////////////
 // add archetypes here.

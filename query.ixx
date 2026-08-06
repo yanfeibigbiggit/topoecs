@@ -1,15 +1,15 @@
-export module tecs:query;
-//#include "configs_macro.h"
+export module tecs.advanced:query;
+
+import tecs.basic;
+import component_defines;
+import archetype_defines;
 
 import std;
 import typelist;
 import configs;
 import mpl;
-import helper;
 
-import :core;
-import :misc;
-import :utility;
+
 
 using size_t = std::size_t;
 
@@ -65,7 +65,7 @@ namespace tecs
         template<typename... Ts>
         struct to_archetype_t<mpl::typelist<Ts...>>
         {
-            using type = archetype_storage_t<Ts...>;
+            using type = archetype_t<Ts...>;
         };
     
     private:

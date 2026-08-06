@@ -1,4 +1,4 @@
-export module tecs:maths;
+export module tecs.basic:maths;
 
 namespace tecs
 {

@@ -54,7 +54,7 @@
     <ClCompile Include="query.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="tecs.ixx">
+    <ClCompile Include="tecs.basic.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="misc.ixx">
@@ -76,6 +76,9 @@
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="utility.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="tecs.advanced.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
   </ItemGroup>

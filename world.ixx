@@ -1,10 +1,12 @@
-export module tecs:world;
+export module tecs.advanced:world;
 
-import :misc;
-import :archetype_defines;
+import tecs.basic;
+import component_defines;
+import archetype_defines;
 
 import configs;
 import mpl;
+import std;
 
 namespace tecs
 {

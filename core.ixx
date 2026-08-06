@@ -1,5 +1,5 @@
 //#include "ankerl/unordered_dense.h"
-export module tecs:core;
+export module tecs.basic:core;
 
 #include "configs_macro.h"
 
@@ -22,7 +22,6 @@ using size_t = std::size_t;
 using xstring = std::string;
 template<typename T, size_t N> using xarray = std::array<T, N>;
 template<typename T> using xvector = std::vector<T>;
-//template<typename tkey, typename tvalue> using xmap = ankerl::unordered_dense::map<tkey, tvalue>;
 
 namespace tecs
 {
@@ -73,10 +72,10 @@ namespace tecs
 		}
 		//entity_t& operator=(entity_t&& ent) = default;
 
-		uint_t get_id() { return id; }
-		uint_t get_version() { return ver; }
-		uint_t get_flag() { return flag; }
-		uint_t get_arche() { return arche; }
+		uint_t get_id() const { return id; }
+		uint_t get_version() const { return ver; }
+		uint_t get_flag() const { return flag; }
+		uint_t get_arche() const { return arche; }
 
 		void set_id(uint_t id_) { id = id_; }
 		void inc_id() { ++id; }
@@ -85,15 +84,15 @@ namespace tecs
 		void set_flag(uint_t flag_) { flag = flag_; }
 		void set_arche(uint_t arche_) { arche = arche_; }
 
-		bool valid() { return id != ID_NULL; }
+		bool valid() const { return id != ID_NULL; }
 		void recycle() { ver = 0; flag = 0; }
 
 		template<uint_t ChunkSize>
-		inline uint_t chunk_id() { return id / ChunkSize; }
+		inline uint_t chunk_id() const { return id / ChunkSize; }
 		template<uint_t ChunkSize>
-		inline uint_t sparse_id() { return id & (ChunkSize - 1); }
+		inline uint_t sparse_id() const { return id & (ChunkSize - 1); }
 
-		void print() { std::cout << "id " << id << " ver " << ver << " arche " << arche << std::endl; }
+		//xstring fmt() { return std::format("id:{:07d} version:{:07d} arche:{:07d}", (unsigned int)id, (unsigned int)ver, (unsigned int)arche); }
 	};
 	entity_t entity_t::null = { ID_NULL, 0, 0, 0 };
 
@@ -439,11 +438,7 @@ namespace tecs
 	export template<typename... Args>
 	using archetype_t = archetype_define_t<Args...>::type;
 
-	/// <summary>
-	/// forward declare for archetype_defines and query.
-	/// </summary>
-	/// <typeparam name="ID"></typeparam>
-	export template<std::size_t ID> struct archetype_of_id_t;
+
 }
 
 

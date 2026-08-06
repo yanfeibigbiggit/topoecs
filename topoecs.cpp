@@ -2,9 +2,13 @@
 //
 //
 import std;
-import tecs;
+import tecs.basic;
 import typelist;
 import helper;
+
+import component_defines;
+import archetype_defines;
+import tecs.advanced;
 
 using sub = mpl::typelist<int, char>;
 using list1 = mpl::typelist<int, char, double>;
@@ -20,80 +24,70 @@ using list_list_unpack = mpl::unpack<list_list>::type;
 
 struct AAA { int a = 0; int b = 0; };
 
-void get_ref(int& a)
+template< typename t, std::size_t n, typename = void >
+struct function_argument_type;
+
+template< typename r, typename ... a, std::size_t n >
+struct function_argument_type< r(*)(a ...), n >
 {
-    static int s = 20;
-    a = s;
+    typedef typename std::tuple_element< n, std::tuple< a ... > >::type type;
+};
+
+template< typename r, typename c, typename ... a, std::size_t n >
+struct function_argument_type< r(c::*)(a ...), n >
+    : function_argument_type< r(*)(a ...), n > {
+};
+
+template< typename r, typename c, typename ... a, std::size_t n >
+struct function_argument_type< r(c::*)(a ...) const, n >
+    : function_argument_type< r(c::*)(a ...), n > {
+};
+
+template< typename ftor, std::size_t n >
+struct function_argument_type< ftor, n,
+    typename std::conditional< false, decltype(&ftor::operator ()), void >::type >
+    : function_argument_type< decltype(&ftor::operator ()), n > {
+};
+
+
+void update(tecs::entity_t ent, const position_t& p)
+{
+    std::cout << std::format("{}", ent) << std::endl;
+    std::cout << "update " << p.x << p.y << p.z << std::endl;
 }
 
 int main()
 {
     tecs::world_t<>::init();
-    //std::cout << transform_t::this_id << std::endl;
-    //std::cout << hurtable_unit_t::this_id << std::endl;
-    //std::cout << movable_unit_t::this_id << std::endl;
-    //std::cout << "has<transform_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<transform_t::this_id>() << std::endl;
-    //std::cout << "has<hurtable_unit_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<hurtable_unit_t::this_id>() << std::endl;
-    //using t1 = archetype_of_id_t<0>::type;
-    //using t2 = archetype_of_id_t<1>::type;
 
-    auto ent = transform_t::create(position_t{ 1,2,3 });
-    ent.print();
-    position_t p{};
-    position_t& pos = p;
-    transform_t::get(ent, pos);
-    std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
-    //using type22 = tecs::get_archetypes_of_component_t<position_t>::type;
-    //std::cout << print_type<type22>() << std::endl;
-    //std::cout << typeid(typename mpl::list_has_sub<type22, mpl::typelist<movment_t>>::type).name() << std::endl;
-    //using type33 = mpl::to_list_list<type22>::type;// mpl::at<0, mpl::to_list_list<type22>::type>::type;
-    //std::cout << typeid(type33).name() << " has position_t " << mpl::has<position_t, type33>::value << std::endl;
-    //std::cout << typeid(mpl::list_has_sub<type33, mpl::typelist<animation_t>>::type).name() << std::endl;
+    auto ent1 = hurtable_movable_anim_unit_t::create(position_t{ 1,2,3 });
+    std::cout << std::format("{}", ent1) << std::endl;
+    auto ent2 = hurtable_movable_anim_unit_t::create(position_t{ 2,3,4 });
+    std::cout << std::format("{}", ent2) << std::endl;
+    //position_t p{};
+    //position_t& pos = p;
+    //transform_t::get(ent, pos);
+    //std::cout << pos.x << " " << pos.y << " " << pos.z << std::endl;
+    int a = 20;
+    auto lam = [](tecs::entity_t ent, position_t& p) 
+    {   
+            std::cout << std::format("{}", ent) << std::endl;
+        std::cout << "update " << p.x << p.y << p.z << std::endl; 
+        p.x *= 3; p.y *= 3; p.z *= 3;
+    };
+    hurtable_movable_anim_unit_t::each(lam);
+    auto lam2 = [](tecs::entity_t ent, position_t& p)
+        {
+            std::cout << std::format("{}", ent) << std::endl;
+            std::cout << "update " << p.x << p.y << p.z << std::endl;
+        };
+    hurtable_movable_anim_unit_t::each(update);
 
-    std::cout << helper::print_type<tecs::query_t<movment_t>::archetype_list>() << std::endl;
-
-    //constexpr auto defined = mpl::traits::is_complete_v< archetype_of_id_t<4>>;
-    //std::cout << "defined " << defined << std::endl;
-
-    //transform_t t;
-    //hurtable_unit_t h;
-    //std::cout << tecs::misc::type_id_archetype<hurtable_unit_t> << std::endl;
-    //std::cout << tecs::misc::type_id_archetype<transform_t> << std::endl;
-    //std::cout << typeid(id_to_archetype_t<0>::type).name() << std::endl;
-    //std::cout << typeid(id_to_archetype_t<1>::type).name() << std::endl;
-    //std::cout << typeid(tecs::id_to_archetype_t<tecs::misc::type_id_archetype<hurtable_unit_t>>::type).name() << std::endl;
-
-    //id_to_type_writer_t<float> writer;
-    //std::cout << typeid(id_to_type_hold_t<tecs::misc::type_id_component<float>>::type).name() << std::endl;
-    // 
-    //std::cout << transform_t::this_id << " -- " << hurtable_unit_t::assure_type_mapping << std::endl;
-    //tecs::misc::type_map_t<attribute_base_t>::push< hurtable_unit_t::this_id>();
-    //std::cout << "has<transform_t::this_id>: " << tecs::misc::type_map_t<position_t>::has<transform_t::this_id>() << std::endl;
-    //std::cout << "has<fightable_unit_t::this_id>: " << tecs::misc::type_map_t<attribute_base_t>::has<hurtable_unit_t::this_id>() << std::endl;
-
-    //std::cout << "type_id_archetype<transform_t> " << typeid(id_to_archetype_t<tecs::misc::type_id_archetype<transform_t>>::type).name() << std::endl;
-    //std::cout << "type_id_archetype<hurtable_unit_t> " << typeid(id_to_archetype_t<tecs::misc::type_id_archetype<hurtable_unit_t>>::type).name() << std::endl;
-
-    //std::cout << typeid(transform_t).name() << std::endl;
-    //std::cout << typeid(movable_unit_t).name() << std::endl;
-    //std::cout << typeid(hurtable_movable_unit_t).name() << std::endl;
-    //std::cout << typeid(hurtable_movable_anim_unit_t).name() << std::endl;
-   
-    //std::cout << typeid(transform_t).name() << std::endl;
-    //std::cout << typeid(transform_t2).name() << std::endl;
-    //std::cout << typeid(transform_t3).name() << std::endl;
-    //std::cout << typeid(transform_t4).name() << std::endl;
-
-    //transform_t::set<position_t>(position_t{1, 2, 3});
-    //position_t p = transform_t::get<position_t>();
-    //std::cout << p.x << " " << p.y << " " << p.z << std::endl;
-
-    //using t1 = tecs::archetype_t<int, char, float>;
-    //std::cout << typeid(t1).name() << std::endl;
-    //using t2 = tecs::archetype_t<int, float, char>;
-    //std::cout << typeid(t2).name() << std::endl;
-    //using t3 = tecs::archetype_t<float, int, char>;
-    //std::cout << typeid(t3).name() << std::endl;
+    
+    std::cout << helper::type_format<tecs::query_t<movment_t>::archetype_list>() << std::endl;
+    std::cout << "------" << std::endl;
+    tecs::query_t<tecs::entity_t, position_t>::each(lam);
+    tecs::query_t<tecs::entity_t, position_t>::each(lam2);
 
     //std::this_thread::sleep_for(std::chrono::seconds(2));
 
