@@ -66,11 +66,11 @@ namespace tecs
 
 		struct type_id_component_tag_t {};
 		export template<typename T>
-			constexpr size_t type_id_component = type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::value;
+		constexpr size_t type_id_component = type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::value;
 
 		struct type_id_archetype_tag_t {};
 		export template<typename T>
-			constexpr size_t type_id_archetype = type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::value;
+		constexpr size_t type_id_archetype = type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::value;
 
 
 		//////////////////////////////////////////////////////////

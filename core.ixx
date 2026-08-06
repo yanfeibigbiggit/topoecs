@@ -346,7 +346,7 @@ namespace tecs
 		chunk_ptrs_t::const_iterator end() const noexcept { return chunks.begin() + length; }
 	};
 
-	template<typename... Args>
+	export template<typename... Args>
 	struct archetype_storage_t
 	{
 		using this_type = archetype_storage_t<Args...>;
@@ -359,7 +359,7 @@ namespace tecs
 		static storage_t* sparse_set_ptr;
 		static id_generator_t<this_id> id_generator;
 
-		static storage_t* sparse_set()
+		static storage_t* try_sparse_set()
 		{
 			if (sparse_set_ptr == nullptr)
 			{
@@ -379,8 +379,10 @@ namespace tecs
 		template<typename Lambda, typename... Ts>
 		static void each_impl(Lambda&& lambda, mpl::typelist<Ts...>)
 		{
-			storage_t* sparse_ptr = sparse_set();
-			for (auto chunk : *sparse_ptr)
+			if(nullptr == sparse_set_ptr)
+			{ return; }
+
+			for (auto chunk : *sparse_set_ptr)
 			{
 				chunk->each<Lambda, Ts...>(std::forward<Lambda>(lambda));
 			}
@@ -393,23 +395,27 @@ namespace tecs
 		static entity_t create(Ts&&...args) 
 		{
 			entity_t ent = id_generator.get();
-			storage_t* sparse_ptr = sparse_set();
+			storage_t* sparse_ptr = try_sparse_set();
 			sparse_ptr->set_components(ent, std::forward<Ts>(args)...);
 
 			return ent;
 		}
 
 		template<typename... Ts>
-		static void get(entity_t ent, Ts&&... args)
+		static bool get(entity_t ent, Ts&&... args)
 		{
 			auto chunk_id = ent.chunk_id< storage_t::COUNT_PER_CHUNK>();
-			storage_t* sparse_ptr = sparse_set();
-			sparse_ptr->get_components(ent, std::forward<Ts>(args)...);
+			if(nullptr == sparse_set_ptr)
+			{ return false; }
+			sparse_set_ptr->get_components(ent, std::forward<Ts>(args)...);
+			return true;
 		}
 
 		template<typename... Ts>
 		static void each(void(*func)(Ts...))
 		{
+			if (nullptr == sparse_set_ptr)
+			{ return; }
 			each_impl(func, mpl::typelist<Ts...>{});
 		}
 
@@ -417,6 +423,8 @@ namespace tecs
 		static void each(Lambda&& lambda)
 		{
 			using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
+			if (nullptr == sparse_set_ptr)
+			{ return; }
 			each_impl(std::forward<Lambda>(lambda), args_type{});
 		}
 
@@ -428,7 +436,7 @@ namespace tecs
 	struct archetype_define_t
 	{
 	private:
-		using unpack_list_t = mpl::no_duplicate<typename mpl::unpack<entity_t, Args...>::type>::type;
+		using unpack_list_t = mpl::no_duplicate_t<mpl::unpack_t<entity_t, Args...>>;
 
 		static constexpr auto apply()
 		{

@@ -22,7 +22,6 @@ namespace tecs
         struct inspector_callable_t < R(C::*)(Ts...)>
         {
             using return_type = R;
-            using class_type = C;
             using args_type = mpl::typelist<Ts...>;
             //using signature = mpl::typelist<R, C, Ts...>;
         };
@@ -31,7 +30,6 @@ namespace tecs
         struct inspector_callable_t < R(C::*)(Ts...) const>
         {
             using return_type = R;
-            using class_type = C;
             using args_type = mpl::typelist<Ts...>;
             //using signature = mpl::typelist<R, C, Ts...>;
         };

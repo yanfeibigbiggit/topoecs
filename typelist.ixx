@@ -29,7 +29,7 @@ export namespace mpl
     {
         typedef typelist<T, TList...>  type;
     };
-
+    template<typename T, typename TList> using push_front_t = push_front<T, TList>::type;
 
     //////////////////////////////////////////////////////////
     template<typename... TList> struct pop_front;
@@ -191,7 +191,7 @@ export namespace mpl
     {
         typedef nulllist type;
     };
-
+    template<typename... TList> using no_duplicate_t = no_duplicate<TList...>::type;
 
     //////////////////////////////////////////////////////////
     template<typename R, typename T, typename...TList> struct replace;
@@ -249,6 +249,7 @@ export namespace mpl
     {
         typedef nulllist type;
     };
+    template<typename...TList> using reverse_t = reverse<TList...>::type;
 
     //////////////////////////////////////////////////////////
     template<typename... TList> struct unpack;
@@ -260,7 +261,6 @@ export namespace mpl
         using rest = unpack<TList...>::type;
         using type = mpl::concat<first, rest>::type;
     };
-
 
     template<typename... Params, template<typename...> class T, typename... TList>
     struct unpack<T<Params...>, TList...>
@@ -275,10 +275,7 @@ export namespace mpl
     {
         using type = mpl::nulllist;
     };
-
-    //////////////////////////////////////////////////////////
-    //imporve with c++17 from here
-    //////////////////////////////////////////////////////////
+    template<typename... TList> using unpack_t = unpack<TList...>::type;
 
     //////////////////////////////////////////////////////////
     template<typename... TList> struct to_list;
@@ -287,6 +284,7 @@ export namespace mpl
     {
         using type = typelist<TList...>;
     };
+    template<typename... TList> using to_list_t = to_list<TList...>::type;
 
     //////////////////////////////////////////////////////////
     template<typename... TList> struct to_list_list;
@@ -295,15 +293,18 @@ export namespace mpl
     {
         using type = typelist<typename mpl::to_list<TList>::type...>;
     };
-
+    template<typename... TList>
+    using to_list_list_t = to_list_list<TList...>::type;
     //////////////////////////////////////////////////////////
-    template<typename TItem, typename... TList> struct has;
+    template<typename TList, typename T> struct has;
 
-    template<typename TItem, typename...TList>
-    struct has<TItem, typelist< TList...>>
+    template<typename T, typename...TList>
+    struct has<typelist< TList...>, T>
     {
-        enum { value = (is_same_v<TList, TItem> || ... ) };
+        enum { value = (is_same_v<TList, T> || ... ) };
     };
+    template<typename TList, typename T>
+    constexpr inline bool has_v = has<TList, T>::value;
 
     //////////////////////////////////////////////////////////
     template<typename Main, typename Sub> struct is_sub;
@@ -311,7 +312,7 @@ export namespace mpl
     template<typename... Main, typename... Sub>
     struct is_sub<typelist<Main...>, typelist<Sub...>>
     {
-        enum { value = (has<Sub, typelist<Main...>>::value && ...) };
+        enum { value = (has<typelist<Main...>, Sub>::value && ...) };
     };
 
     template<typename Main, typename Sub>
@@ -319,12 +320,23 @@ export namespace mpl
 
     //////////////////////////////////////////////////////////
     //return list of list that contain all element of sub list
-    template<typename Main, typename Sub> struct list_has_sub;
+    template<typename Main, typename Sub> struct list_own_sub;
 
     template<typename... Main, typename... Sub>
-    struct list_has_sub<typelist<Main...>, typelist<Sub...>>
+    struct list_own_sub<typelist<Main...>, typelist<Sub...>>
     {
         using temp = typelist< mpl::traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
         using type = typename erase_all<nulllist, temp>::type;
     };
+    template<typename Main, typename Sub> using list_own_sub_t = list_own_sub<Main, Sub>::type;
+    //////////////////////////////////////////////////////////
+    template<typename... TList> struct list_remove_qualifier;
+
+    template<typename... TList> 
+    struct list_remove_qualifier<mpl::typelist<TList...>>
+    {
+        using type = mpl::typelist<mpl::traits::remove_qualifier_t<TList>...>;
+    };
+    template<typename... TList>
+    using list_remove_qualifier_t = list_remove_qualifier<TList...>::type;
 }
