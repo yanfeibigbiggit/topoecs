@@ -1,6 +1,7 @@
 export module helper;
 
 import tecs.basic;
+import component_defines;
 
 import std;
 
@@ -32,23 +33,33 @@ export namespace helper
 }
 
 template<>
-struct std::formatter<tecs::entity_t> : std::formatter<xstrview>
+struct std::formatter<tecs::entity_t>
 {
-    constexpr auto parse(std::format_parse_context& ctx) {
-        return ctx.begin();
-    }
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin();}
 
     auto format(const tecs::entity_t& ent, std::format_context& ctx) const {
         return std::format_to(ctx.out(), "entity:({:07d} {:07d} {:07d})", (unsigned int)(ent.get_id()), (unsigned int)(ent.get_version()), (unsigned int)(ent.get_arche()));
     }
-
-    //auto format(const tecs::entity_t& ent, std::format_context& ctx) const {
-    //    xstring temp;
-    //    std::format_to(std::back_inserter(temp), "({}, {}, {})", (unsigned int)(ent.get_id()), (unsigned int)(ent.get_version()), (unsigned int)(ent.get_arche()));
-    //    return std::formatter<xstrview>::format(temp, ctx);
-    //}
 };
 
+template<>
+struct std::formatter<position_t>
+{
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
 
+    auto format(const position_t& t, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "position:({} {} {})", t.x, t.y, t.z);
+    }
+};
+
+template<>
+struct std::formatter<attribute_base_t>
+{
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const attribute_base_t& t, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "attr_base:({} {} {} {} {} {})", t.strength, t.agility, t.intelligence, t.conititution, t.wistom, t.spirit);
+    }
+};
 
 
