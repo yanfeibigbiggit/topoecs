@@ -71,7 +71,7 @@ namespace tecs
     {
         using type = archetype_storage_t<Ts...>;
         //you can't use archetype_t(which archetype_define_t<Args...>::type) here.
-        //because misc::sort_index_sequence was call in a temlate function(in this case: query_t:each() function), and it cause unexpected ADL,
+        //because type id will be different if misc::sort_index_sequence was call in different temlate function(in this case: query_t:each() function)
         //type_id_component will be no same as in component_defines and archetype_defines,
         //Anyway, we here depend on the first time type_id_component was build in archetype_defines, make things easy.
     };
