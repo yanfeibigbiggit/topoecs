@@ -255,7 +255,7 @@ namespace tecs
 			}
 
 			template<typename Lambda, typename... Ts>
-			inline void each(Lambda&& lambda)
+			[[nodiscard]] inline void each(Lambda&& lambda)
 			{
 				for (uint_t i = 0; i < length; i++)
 				{
@@ -377,11 +377,10 @@ namespace tecs
 		static bool allocated() { return sparse_set_ptr != nullptr; }
 
 		template<typename Lambda, typename... Ts>
-		static void each_impl(Lambda&& lambda, mpl::typelist<Ts...>)
+		[[nodiscard]] static void each_impl(Lambda&& lambda, mpl::typelist<Ts...>)
 		{
 			if(nullptr == sparse_set_ptr)
 			{ return; }
-
 			for (auto chunk : *sparse_set_ptr)
 			{
 				chunk->each<Lambda, Ts...>(std::forward<Lambda>(lambda));
@@ -425,6 +424,7 @@ namespace tecs
 			using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
 			if (nullptr == sparse_set_ptr)
 			{ return; }
+
 			each_impl(std::forward<Lambda>(lambda), args_type{});
 		}
 

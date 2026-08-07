@@ -151,6 +151,8 @@ export namespace mpl
         typedef nulllist type;
     }; 
 
+    template<typename T, typename TList> using erase_t = erase<T, TList>::type;
+
     //////////////////////////////////////////////////////////
     template<typename T, typename... TList> struct erase_all;
     template<typename T, typename H, typename... TList>
@@ -320,15 +322,33 @@ export namespace mpl
 
     //////////////////////////////////////////////////////////
     //return list of list that contain all element of sub list
-    template<typename Main, typename Sub> struct list_own_sub;
+    template<typename Main, typename Sub> struct select_sublist;
 
     template<typename... Main, typename... Sub>
-    struct list_own_sub<typelist<Main...>, typelist<Sub...>>
+    struct select_sublist<typelist<Main...>, typelist<Sub...>>
     {
         using temp = typelist< mpl::traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
         using type = typename erase_all<nulllist, temp>::type;
     };
-    template<typename Main, typename Sub> using list_own_sub_t = list_own_sub<Main, Sub>::type;
+    template<typename Main, typename Sub> using select_sublist_t = select_sublist<Main, Sub>::type;
+    //////////////////////////////////////////////////////////
+    
+    template<typename Main, typename Sub> struct is_all_sublist;
+    template<typename T, typename... Main, typename Sub>
+    struct is_all_sublist<typelist<T, Main...>, Sub>
+    {
+        enum { value = is_sub_v<T, Sub >&& is_all_sublist <mpl::typelist< Main...>, Sub > ::value };
+    };
+
+    template<typename Sub>
+    struct is_all_sublist<typelist<>, Sub>
+    {
+        enum { value = 1 };
+    };
+
+    template<typename Main, typename Sub>
+    constexpr inline bool is_all_sublist_v = is_all_sublist<Main, Sub>::value;
+    
     //////////////////////////////////////////////////////////
     template<typename... TList> struct list_remove_qualifier;
 
@@ -339,4 +359,19 @@ export namespace mpl
     };
     template<typename... TList>
     using list_remove_qualifier_t = list_remove_qualifier<TList...>::type;
+
+    //////////////////////////////////////////////////////////
+    template<typename TList, typename T> struct first_of_not;
+
+    template<typename Target, typename T, typename... TList>
+    struct first_of_not<typelist<T, TList...>, Target>
+    {
+        using type = mpl::traits::if_else_t<mpl::is_same_v<T, Target>, typename first_of_not<typelist<TList...>, Target>::type, T>;
+    };
+    template<typename T> 
+    struct first_of_not<typelist<>, T>
+    {
+        using type = nulllist;
+    };
+    template<typename TList, typename T> using first_of_not_t = first_of_not<TList, T>::type;
 }

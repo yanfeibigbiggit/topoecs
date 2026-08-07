@@ -1,9 +1,9 @@
 export module archetype_defines;
 
+import tecs.basic;
 import component_defines;
 
 import std;
-import tecs.basic;
 
 /// <summary>
 /// forward declare for archetype_defines and query.

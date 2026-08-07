@@ -28,7 +28,11 @@ namespace tecs
 
     public:
         static constexpr size_t archetypes_count = archetype_instantiation_t<configs::TYPE_ID_START_INDEX>::value;
+
+    private:
+
     public:
+
         /// <summary>
         /// world::init must be call before any interface/class/function of tecs.
         /// </summary>
