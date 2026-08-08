@@ -261,7 +261,7 @@ export namespace mpl
     {
         using first = T;
         using rest = unpack<TList...>::type;
-        using type = mpl::concat<first, rest>::type;
+        using type = concat<first, rest>::type;
     };
 
     template<typename... Params, template<typename...> class T, typename... TList>
@@ -269,13 +269,13 @@ export namespace mpl
     {
         using first = typelist<Params...>;
         using rest = unpack<TList...>::type;
-        using type = mpl::concat<first, rest>::type;
+        using type = concat<first, rest>::type;
     };
 
     template<>
     struct unpack<>
     {
-        using type = mpl::nulllist;
+        using type = nulllist;
     };
     template<typename... TList> using unpack_t = unpack<TList...>::type;
 
@@ -293,7 +293,7 @@ export namespace mpl
     template<typename... TList>
     struct to_list_list< typelist<TList...>>
     {
-        using type = typelist<typename mpl::to_list<TList>::type...>;
+        using type = typelist<typename to_list<TList>::type...>;
     };
     template<typename... TList>
     using to_list_list_t = to_list_list<TList...>::type;
@@ -327,7 +327,7 @@ export namespace mpl
     template<typename... Main, typename... Sub>
     struct select_sublist<typelist<Main...>, typelist<Sub...>>
     {
-        using temp = typelist< mpl::traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
+        using temp = typelist<traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
         using type = typename erase_all<nulllist, temp>::type;
     };
     template<typename Main, typename Sub> using select_sublist_t = select_sublist<Main, Sub>::type;
@@ -337,7 +337,7 @@ export namespace mpl
     template<typename T, typename... Main, typename Sub>
     struct is_all_sublist<typelist<T, Main...>, Sub>
     {
-        enum { value = is_sub_v<T, Sub >&& is_all_sublist <mpl::typelist< Main...>, Sub > ::value };
+        enum { value = is_sub_v<T, Sub >&& is_all_sublist <typelist< Main...>, Sub > ::value };
     };
 
     template<typename Sub>
@@ -353,9 +353,9 @@ export namespace mpl
     template<typename... TList> struct list_remove_qualifier;
 
     template<typename... TList> 
-    struct list_remove_qualifier<mpl::typelist<TList...>>
+    struct list_remove_qualifier<typelist<TList...>>
     {
-        using type = mpl::typelist<mpl::traits::remove_qualifier_t<TList>...>;
+        using type = typelist<traits::remove_qualifier_t<TList>...>;
     };
     template<typename... TList>
     using list_remove_qualifier_t = list_remove_qualifier<TList...>::type;
@@ -366,7 +366,7 @@ export namespace mpl
     template<typename Target, typename T, typename... TList>
     struct first_of_not<typelist<T, TList...>, Target>
     {
-        using type = mpl::traits::if_else_t<mpl::is_same_v<T, Target>, typename first_of_not<typelist<TList...>, Target>::type, T>;
+        using type = traits::if_else_t<is_same_v<T, Target>, typename first_of_not<typelist<TList...>, Target>::type, T>;
     };
     template<typename T> 
     struct first_of_not<typelist<>, T>
@@ -374,4 +374,17 @@ export namespace mpl
         using type = nulllist;
     };
     template<typename TList, typename T> using first_of_not_t = first_of_not<TList, T>::type;
+
+    //////////////////////////////////////////////////////////
+    //has raw reference of Target. raw type of( Target&, Target*,....) is Target.
+    template<typename TList, typename Target> struct has_raw_reference_of_t;
+
+    template<typename Target, typename... TList> 
+    struct has_raw_reference_of_t<typelist<TList...>, Target>
+    {
+        using raw_taregt = traits::remove_qualifier_t<Target>;
+        enum { value = ((is_same_v<traits::remove_qualifier_t<TList>, raw_taregt> && is_reference_v<TList>) || ...) };
+    };
+
+    template<typename TList, typename Target> constexpr inline bool has_raw_reference_of_v = has_raw_reference_of_t<TList, Target>::value;
 }

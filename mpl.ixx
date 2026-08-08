@@ -257,6 +257,19 @@ namespace mpl
 	export template <class... _Types>
 	using void_t = void;
 
+
+	export template <class>
+	constexpr bool is_reference_v = false; // determine whether type argument is a reference
+
+	template <class _Ty>
+	constexpr bool is_reference_v<_Ty&> = true;
+
+	template <class _Ty>
+	constexpr bool is_reference_v<_Ty&&> = true;
+
+	export template <class _Ty>
+	struct is_reference : bool_constant<is_reference_v<_Ty>> {}; 
+
     ///////////////////////////////////////////////////////////////
     export template <class _Ty, _Ty... _Vals>
         struct integer_sequence
