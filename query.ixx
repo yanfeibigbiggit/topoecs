@@ -41,7 +41,6 @@ namespace tecs
     struct search_t
     {
     private:
-        //using unpack_list_t = mpl::list_remove_qualifier_t<mpl::no_duplicate_t<mpl::push_front_t<tecs::entity_t, mpl::unpack_t<Args...>>>>;
         using unpack_list_t = mpl::no_duplicate_t<mpl::unpack_t<Args...>>;
 
         template<typename... TList> struct select_t;
@@ -70,10 +69,6 @@ namespace tecs
     struct to_archetype_t<mpl::typelist<Ts...>>
     {
         using type = archetype_storage_t<Ts...>;
-        //you can't use archetype_t(which archetype_define_t<Args...>::type) here.
-        //because type id will be different if misc::sort_index_sequence was call in different temlate function(in this case: query_t:each() function)
-        //type_id_component will be no same as in component_defines and archetype_defines,
-        //Anyway, we here depend on the first time type_id_component was build in archetype_defines, make things easy.
     };
 
     export struct query_t
@@ -83,7 +78,7 @@ namespace tecs
         static void each_impl(Lambda&& lambda, mpl::typelist<As...>)
         {
             //((std::cout<< typeid(to_archetype_t<As>::type).name() << std::endl), ...);
-            ((typename to_archetype_t<As>::type::template each(lambda)), ...);
+            (typename to_archetype_t<As>::type::template each(lambda), ...);
         }
 
     public:
@@ -95,10 +90,6 @@ namespace tecs
             each_impl(std::forward<Lambda>(lambda), archetype_list{});
         }
 
-        /// <summary>
-        /// archetypes of components you want to loop
-        /// </summary>
-        /// <typeparam name="...Args"></typeparam>
         template<typename... Args>
         struct with
         {
@@ -108,10 +99,78 @@ namespace tecs
             static void each(Lambda&& lambda)
             {
                 using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
-                
                 static_assert(mpl::is_all_sublist_v<archetype_list, mpl::list_remove_qualifier_t<args_type>>, "args of lambda or function are not belong to selections of `with`");
                 each_impl(std::forward<Lambda>(lambda), archetype_list{});
             }
         };
+
+        template<typename... Behaviour>
+        struct run_t
+        {
+            using archetype_list = search_t<mpl::unpack_unpack_t<Behaviour...>>::type;
+            using hierarchy = mpl::typelist< Behaviour...>;
+        private:
+
+            template<typename TList, typename Arche> struct trait_behaviour_t
+            {
+                using type = mpl::at_t<0, TList>;
+            };
+
+            template<typename Arche, typename... Bs, template<typename> class Behaviour, typename... TList>
+            struct trait_behaviour_t<mpl::typelist<Behaviour<Bs...>, TList...>, Arche>
+            {
+                using type = mpl::traits::if_else_t<mpl::is_same_v<mpl::to_list_t<mpl::at_t<0, mpl::typelist<Bs...>>>, Arche>, 
+                                                    Behaviour<Bs...>, 
+                                                    typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::type>;
+            };
+
+
+        public:
+            template<typename Arche>
+            static void loop_impl()
+            {
+                using behaivour_type = trait_behaviour_t<hierarchy, Arche>::type;
+                typename to_archetype_t<Arche>::type::template each(&behaivour_type::each);
+            }
+
+            template<typename... As>
+            static void loop(mpl::typelist<As...>)
+            {
+                (loop_impl<As>(), ...);
+            }
+
+            static void operator()()
+            {
+                loop(archetype_list{});
+            }
+        };
+
+        template<typename... Behaviour>
+        static constexpr inline run_t<Behaviour...> run = run_t<Behaviour...>{};
+    };
+
+
+
+    //export template<typename Behaviour> struct behaviour_split_t;
+    //export template<typename... Arches, template<typename> class Behaviour>
+    //struct behaviour_split_t<Behaviour<Arches...>> : Behaviour<Arches...>
+    //{
+    //    using base_type = Behaviour<Arches...>;
+
+
+    //};
+
+
+
+
+
+
+    //export template<typename... Args>
+    struct hierarchy_task_t
+    {
+        static void run()
+        {
+
+        }
     };
 }

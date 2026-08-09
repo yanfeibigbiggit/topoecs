@@ -67,6 +67,7 @@ export namespace mpl
     {
         typedef nulllist type;
     };
+    template<unsigned int N, typename TList> using at_t = at<N, TList>::type;
 
     //////////////////////////////////////////////////////////
     template<int A, int B>
@@ -254,22 +255,42 @@ export namespace mpl
     template<typename...TList> using reverse_t = reverse<TList...>::type;
 
     //////////////////////////////////////////////////////////
+    template<typename... TList> struct to_list_if_template;
+
+    template<typename T>
+    struct to_list_if_template<T>
+    {
+        using type = T;
+    };
+
+    template<template<typename> class Host, typename... TList>
+    struct to_list_if_template<Host<TList...>>
+    {
+        using type = typelist<TList...>;
+    };
+
+    template<>
+    struct to_list_if_template<nulllist>
+    {
+        using type = nulllist;
+    };
+
+    template<typename TList>
+    using to_list_if_template_t = to_list_if_template<TList>::type;
+
+    //////////////////////////////////////////////////////////
     template<typename... TList> struct unpack;
 
     template<typename T, typename... TList>
     struct unpack<T, TList...>
     {
-        using first = T;
-        using rest = unpack<TList...>::type;
-        using type = concat<first, rest>::type;
+        using type = concat<T, typename unpack<TList...>::type>::type;
     };
 
     template<typename... Params, template<typename...> class T, typename... TList>
     struct unpack<T<Params...>, TList...>
     {
-        using first = typelist<Params...>;
-        using rest = unpack<TList...>::type;
-        using type = concat<first, rest>::type;
+        using type = concat<typelist<Params...>, typename unpack<TList...>::type>::type;
     };
 
     template<>
@@ -278,6 +299,28 @@ export namespace mpl
         using type = nulllist;
     };
     template<typename... TList> using unpack_t = unpack<TList...>::type;
+
+    //////////////////////////////////////////////////////////
+    template<typename... TList> struct unpack_unpack;
+
+    template<typename T, typename... TList>
+    struct unpack_unpack<T, TList...>
+    {
+        using type = concat<T, typename unpack_unpack<TList...>::type>::type;
+    };
+
+    template<typename... Params, template<typename...> class T, typename... TList>
+    struct unpack_unpack<T<Params...>, TList...>
+    {
+        using type = concat<typename unpack_unpack<Params...>::type, typename unpack_unpack<TList...>::type>::type;
+    };
+
+    template<>
+    struct unpack_unpack<>
+    {
+        using type = nulllist;
+    };
+    template<typename... TList> using unpack_unpack_t = unpack_unpack<TList...>::type;
 
     //////////////////////////////////////////////////////////
     template<typename... TList> struct to_list;
@@ -387,4 +430,50 @@ export namespace mpl
     };
 
     template<typename TList, typename Target> constexpr inline bool has_raw_reference_of_v = has_raw_reference_of_t<TList, Target>::value;
+
+    //////////////////////////////////////////////////////////
+    template<typename TList, typename T> struct same_or_has { enum { value = 0 }; };
+
+    template<typename T, typename... TList, typename Target>
+    struct same_or_has<typelist<T, TList...>, Target>
+    {
+        enum { value = is_same_v<T, Target> || same_or_has<TList...>::value };
+    };
+
+    template<typename... Params, template<typename> class H, typename... TList, typename Target>
+    struct same_or_has<typelist<H<Params...>, TList...>, Target>
+    {
+        enum { value = has_v<typelist<Params...>, Target> || same_or_has<TList...>::value };
+    };
+    template<typename T>
+    struct same_or_has<T, T> { enum { value = 1 }; };
+
+    template<typename... Params, template<typename> class H, typename Target>
+    struct same_or_has<H<Params...>, Target>
+    {
+        enum { value = has_v<typelist<Params...>, Target> };
+    };
+
+    template<typename Target>
+    struct same_or_has<nulllist, Target> { enum {value = 0}; };
+
+    template<typename TList, typename Target> constexpr inline bool same_or_has_v = same_or_has<TList, Target>::value;
+
+    //////////////////////////////////////////////////////////
+    template<typename TList, typename T> struct first_of_has;
+
+    template<typename Target, typename T, typename... TList>
+    struct first_of_has<typelist<T, TList...>, Target>
+    {
+        using first = T;
+        using type = traits::if_else_t<same_or_has_v<T, Target>, T, typename first_of_has<typelist<TList...>, Target>::type >;
+    };
+    template<typename T>
+    struct first_of_has<typelist<>, T>
+    {
+        using type = nulllist;
+    };
+    template<typename TList, typename T> using first_of_has_t = first_of_has<TList, T>::type;
+
+
 }

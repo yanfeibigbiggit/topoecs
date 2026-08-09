@@ -25,8 +25,6 @@ template<typename T> using xvector = std::vector<T>;
 
 namespace tecs
 {
-	using id_t = unsigned long long;
-
 	//64 bit layout: [ARCHETYPE_BITS | UNUSED | VERSION_BITS | ID_BITS]
 	constexpr inline size_t ENTITY_BITS = 64;
 	constexpr inline size_t ID_BITS = configs::ID_BITS;
@@ -34,25 +32,10 @@ namespace tecs
 	constexpr inline size_t FLAG_BITS = 32 - configs::ARCHETYPE_BITS;
 	constexpr inline size_t ARCHETYPE_BITS = configs::ARCHETYPE_BITS;
 
-	constexpr inline size_t ID_MAX_COUNT = (1ull << ID_BITS);
-	constexpr inline size_t ID_MAX = ID_MAX_COUNT - 1;
+	constexpr inline uint_t ID_MAX_COUNT = (1ull << ID_BITS);
+	constexpr inline uint_t ID_MAX = ID_MAX_COUNT - 1;
+	export const uint_t		ID_NULL = ID_MAX;
 
-	const id_t MASK_ID		= (1ull << ID_BITS) - 1;
-	const id_t MASK_VER		= (( 1ull << VERSION_BITS) - 1) << ID_BITS;
-	const id_t VER_ONE		= 1ull << ID_BITS;
-	const id_t MASK_ARCHE	= ~((1ull << (ENTITY_BITS - ARCHETYPE_BITS)) - 1);
-
-	export const id_t ID_NULL = ID_MAX;
-
-	export inline uint_t get_id(id_t e) { return e & MASK_ID; }
-	export inline id_t set_id(id_t e, uint_t newid) { return e - get_id(e) + newid; }
-	export inline uint_t get_version(id_t e) { return (e & MASK_VER) >> ID_BITS; }
-	export inline id_t set_version(id_t e, id_t v) { return (e & ~MASK_VER) + (v << ID_BITS); }
-	export inline id_t incr_version(id_t e) { return e + VER_ONE; }
-	export inline ushort_t get_arche(id_t e) { return (e & MASK_ARCHE) >> (ENTITY_BITS - ARCHETYPE_BITS); }
-	export inline id_t set_arche(id_t e, id_t arche) { return (e & ~MASK_ARCHE) + (arche << (ENTITY_BITS - ARCHETYPE_BITS)); }
-
-	
 	export struct entity_t
 	{
 	private:
@@ -92,14 +75,12 @@ namespace tecs
 		}
 
 		bool valid() const { return id != ID_NULL; }
-		void recycle() { ver = 0; flag = 0; }
+		void recycle() { inc_version(); flag = 0; }
 
 		template<uint_t ChunkSize>
 		inline uint_t chunk_id() const { return id / ChunkSize; }
 		template<uint_t ChunkSize>
 		inline uint_t sparse_id() const { return id & (ChunkSize - 1); }
-
-		//xstring fmt() { return std::format("id:{:07d} version:{:07d} arche:{:07d}", (unsigned int)id, (unsigned int)ver, (unsigned int)arche); }
 	};
 	entity_t entity_t::null = { ID_NULL, 0, 0, 0 };
 
@@ -148,6 +129,11 @@ namespace tecs
 		{
 			return current.valid();
 		}
+
+		uint_t available()
+		{
+			return free.size() + ID_MAX - current.get_id();
+		}
 	};
 
 	enum archetype_state_t
@@ -170,7 +156,7 @@ namespace tecs
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// 
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	export template<typename... Args>
+	template<typename... Args>
 	struct sparse_set_t
 	{
 		static constexpr size_t SPARSE_INDEX_NULL = std::numeric_limits<uint_t>::max();
@@ -268,9 +254,6 @@ namespace tecs
 			template<typename... Ts>
 			inline bool set_components(entity_t ent, Ts&&...args)
 			{
-				spinlock_t spin;
-				spin.lock();
-
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
 				if (SPARSE_INDEX_NULL == dense_index)
@@ -290,15 +273,11 @@ namespace tecs
 				//set at last, in case Ts... contain entity_t(not be allowed)
 				set_component<entity_t>(dense_index, std::move(ent));
 
-				spin.unlock();
 				return true;
 			}
 
 			bool remove(entity_t ent)
 			{
-				spinlock_t spin;
-				spin.lock();
-
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
 				//has been deleted or not been alloc
@@ -315,7 +294,6 @@ namespace tecs
 				indexies[sparse_index] = SPARSE_INDEX_NULL;
 				length--;
 
-				spin.unlock();
 				return true;
 			}
 
@@ -465,7 +443,7 @@ namespace tecs
 		template<typename Lambda, typename... Ts>
 		static void each_impl(Lambda&& lambda, mpl::typelist<Ts...>)
 		{
-			static_assert(!mpl::has_raw_reference_of_v<mpl::typelist<Ts...>, entity_t>, "forbidden reference of entity_t");
+			static_assert(!mpl::has_raw_reference_of_v<mpl::typelist<Ts...>, entity_t>, "each() function: forbidden reference of entity_t");
 			if(nullptr == sparse_set_ptr) [[unlikely]]
 			{ return; }
 			for (auto chunk : *sparse_set_ptr)
@@ -477,10 +455,9 @@ namespace tecs
 	public:
 		static void name() { std::cout << misc::type_name_id<this_type>() << std::endl; }
 
-		bool full() 
-		{
-			return id_generator.full();
-		}
+		bool full()  { return id_generator.full(); }
+
+		static uint_t available() { return id_generator.available(); }
 
 		template<typename... Ts>
 		static entity_t create(Ts&&...args) 
@@ -555,8 +532,6 @@ namespace tecs
 
 	export template<typename... Args>
 	using archetype_t = archetype_define_t<Args...>::type;
-
-
 }
 
 

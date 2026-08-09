@@ -222,7 +222,7 @@ namespace mpl
 
     ///////////////////////////////////////////////////////////////
     export template <class, class> constexpr bool is_same_v = false;
-    template <class _Ty> constexpr bool is_same_v<_Ty, _Ty> = true;
+	export template <class _Ty> constexpr bool is_same_v<_Ty, _Ty> = true;
 
     ///////////////////////////////////////////////////////////////
     export template <class _Ty, class... _Types> constexpr bool is_any_of_v = (is_same_v<_Ty, _Types> || ...);
