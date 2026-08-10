@@ -4,11 +4,6 @@ import tecs.basic;
 import component_defines;
 
 import std;
-
-/// <summary>
-/// forward declare for archetype_defines and query.
-/// </summary>
-/// <typeparam name="ID"></typeparam>
 export template<std::size_t ID> struct archetype_of_id_t;
 
 #define REGISTER_STATIC_ARCHETYPE(_name) export template<> struct archetype_of_id_t<_name::this_id> { using type = _name; };

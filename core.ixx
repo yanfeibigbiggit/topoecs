@@ -1,7 +1,4 @@
-//#include "ankerl/unordered_dense.h"
 export module tecs.basic:core;
-
-#include "configs_macro.h"
 
 import std;
 import typelist;

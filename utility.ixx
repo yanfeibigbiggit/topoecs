@@ -7,6 +7,7 @@ namespace tecs
 {
     namespace utility
     {
+        //////////////////////////////////////////////////////////////////////
         export template <typename T, std::size_t N>
         constexpr std::array<T, N> make_array(const T& value)
         {
@@ -16,6 +17,7 @@ namespace tecs
             }(std::make_index_sequence<N>{}, value);
         }
 
+        //////////////////////////////////////////////////////////////////////
         export template<typename T> struct inspector_callable_t;
 
         export template<typename R, typename C, typename... Ts>
@@ -41,5 +43,27 @@ namespace tecs
             using args_type = mpl::typelist<Ts...>;
             //using signature = mpl::typelist<R, C, Ts...>;
         };
+
+        //////////////////////////////////////////////////////////////////////
+        template<typename T>
+        struct HasMethod {
+            static constexpr bool value = false;
+        };
+
+        // Non-static member function pointer
+        template<typename R, typename C, typename... A>
+        struct HasMethod<R(C::*)(A...)> {
+            static constexpr bool value = true;
+        };
+
+        // Static member function pointer (regular function pointer)
+        template<typename R, typename... A>
+        struct HasMethod<R(*)(A...)> {
+            static constexpr bool value = true;
+        };
+
+        //---- example ----//
+        //template<typename T>
+        //concept HasEachMethod = requires { typename HasMethod<decltype(&T::each)>; }&& HasMethod<decltype(&T::each)>::value;
     }
 }

@@ -174,8 +174,6 @@ export namespace mpl
         typedef nulllist type;
     };
 
-
-
     //////////////////////////////////////////////////////////
     template<typename T, typename...TList> struct no_duplicate;
 
@@ -255,6 +253,15 @@ export namespace mpl
     template<typename...TList> using reverse_t = reverse<TList...>::type;
 
     //////////////////////////////////////////////////////////
+    template<typename T> struct is_null { enum { value = 0 }; };
+    template<> 
+    struct is_null<nulllist> { enum { value = 1 }; };
+
+    template<typename T>
+    constexpr inline bool is_null_v = is_null<T>::value;
+
+    //////////////////////////////////////////////////////////
+    //typelist<host<...>, a, b, ...> => typelist<typelist<...>, a, b, ...>
     template<typename... TList> struct to_list_if_template;
 
     template<typename T>
@@ -323,6 +330,7 @@ export namespace mpl
     template<typename... TList> using unpack_unpack_t = unpack_unpack<TList...>::type;
 
     //////////////////////////////////////////////////////////
+    //other<a,b,...> => typelist<a, b,...>
     template<typename... TList> struct to_list;
     template<template<typename...> class Pack, typename... TList>
     struct to_list < Pack<TList...> >
@@ -332,6 +340,7 @@ export namespace mpl
     template<typename... TList> using to_list_t = to_list<TList...>::type;
 
     //////////////////////////////////////////////////////////
+    //typlist<other<...>, ...>  => typelist<typelist<...>, ...>
     template<typename... TList> struct to_list_list;
     template<typename... TList>
     struct to_list_list< typelist<TList...>>
@@ -357,7 +366,7 @@ export namespace mpl
     template<typename... Main, typename... Sub>
     struct is_sub<typelist<Main...>, typelist<Sub...>>
     {
-        enum { value = (has<typelist<Main...>, Sub>::value && ...) };
+        enum { value = (has_v<typelist<Main...>, Sub> && ...) };
     };
 
     template<typename Main, typename Sub>
@@ -375,7 +384,7 @@ export namespace mpl
     };
     template<typename Main, typename Sub> using select_sublist_t = select_sublist<Main, Sub>::type;
     //////////////////////////////////////////////////////////
-    
+    //all list of Main contain sub
     template<typename Main, typename Sub> struct is_all_sublist;
     template<typename T, typename... Main, typename Sub>
     struct is_all_sublist<typelist<T, Main...>, Sub>
@@ -432,6 +441,7 @@ export namespace mpl
     template<typename TList, typename Target> constexpr inline bool has_raw_reference_of_v = has_raw_reference_of_t<TList, Target>::value;
 
     //////////////////////////////////////////////////////////
+    // typelist<a,b...> has Target, or T is Target
     template<typename TList, typename T> struct same_or_has { enum { value = 0 }; };
 
     template<typename T, typename... TList, typename Target>
