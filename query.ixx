@@ -17,27 +17,33 @@ namespace tecs
 {
     template<typename Arche> struct is_archetype_t { static constexpr bool value = 0; };
     template<typename... Ts> struct is_archetype_t<archetype_storage_t<Ts...>> { static constexpr bool value = 1; };
-    template<typename Arche> concept is_archetype_c = is_archetype_t<Arche>::value;
+    export template<typename Arche> 
+    concept IsArchetypeConcept = is_archetype_t<Arche>::value;
 
-    template<typename Behaviour> struct is_behaviour_template_t { static constexpr bool value = 0; };
-    template<is_archetype_c... As, template<typename> class Behaviour>
-    struct is_behaviour_template_t <Behaviour<As...>> { static constexpr bool value = 1; };
-    template<typename Behaviour> concept is_behaviour_template_c = is_behaviour_template_t<Behaviour>::value;
+    //template<typename C> struct is_empty_template_class 
+    //{ static constexpr bool value = 0; };
+    //template<typename...Ts, template<typename> class C>
+    //struct is_empty_template_class<C<Ts...>> { static constexpr bool value = 1; };
 
-    export template<typename T, typename... Args> 
-    concept has_static_each_c = requires(Args... args) 
-    {
-        { T::each(args...) } -> std::same_as<void>;
-    };
+    template<typename Behaviour> struct is_query_behaviour_t { static constexpr bool value = 0; };
+    template<IsArchetypeConcept... As, template<typename> class Behaviour>
+    struct is_query_behaviour_t<Behaviour<As...>> { static constexpr bool value = 1; };
+
+    //-- don't work --//
+    //export template<typename T, typename... Args> 
+    //concept HasStaticEachFuncConcept = requires(Args... args)
+    //{
+    //    { T::each(args...) } -> std::same_as<void>;
+    //};
     //another implementation
-    //template <class C>
-    //concept HasEachMethod = std::is_function_v<decltype(C::each)>;
     export template <class C>
     concept HasEachMethod = std::is_function_v<decltype(C::each)>;
 
+    template<typename Behaviour>
+    concept IsQueryBehaviourConcept = is_query_behaviour_t<Behaviour>::value;
 
     template<typename Behaviour>
-    concept is_arg_of_query_run_c = is_archetype_c<Behaviour> || (is_behaviour_template_c<Behaviour> && has_static_each_c<Behaviour>);
+    concept ArchetypeOrQueryBehaviorConcept = IsArchetypeConcept<Behaviour> || HasEachMethod<Behaviour>;
 
     template<typename T>
     struct get_archetypes_of_component
@@ -128,7 +134,7 @@ namespace tecs
         };
 
         template<typename... Behaviour>
-        requires (is_arg_of_query_run_c<Behaviour> && ...)
+        requires (ArchetypeOrQueryBehaviorConcept<Behaviour> && ...)
         struct run_t
         {
             using archetype_list = search_t<mpl::unpack_unpack_t<Behaviour...>>::type;
@@ -180,7 +186,6 @@ namespace tecs
         template<typename... Arches>
         static constexpr inline with_t<Arches...> with = with_t<Arches...>{};
         template<typename... Behaviour>
-            //requires (is_arg_of_query_run_c<Behaviour> && ...)
         static constexpr inline run_t<Behaviour...> run = run_t<Behaviour...>{};
     };
 

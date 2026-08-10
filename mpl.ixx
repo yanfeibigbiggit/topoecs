@@ -391,6 +391,5 @@ namespace mpl
 		export template <typename T>
 		inline constexpr bool is_complete_v = is_complete_t<T>::value;
 		//<<<<<<<<
-
 	}
 }
