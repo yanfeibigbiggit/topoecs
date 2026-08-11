@@ -15,16 +15,6 @@ using size_t = std::size_t;
 
 namespace tecs
 {
-    template<typename Arche> struct is_archetype_t { static constexpr bool value = 0; };
-    template<typename... Ts> struct is_archetype_t<archetype_storage_t<Ts...>> { static constexpr bool value = 1; };
-    export template<typename Arche> 
-    concept IsArchetypeConcept = is_archetype_t<Arche>::value;
-
-    export template<class C> concept IsTemplateClassConcept = requires(C c)
-    {
-        [] <template<class...> class T, class... Ts>(T<Ts...>) {}(c);
-    };
-
     template<typename Behaviour> struct is_query_behaviour_t { static constexpr bool value = 0; };
     template<IsArchetypeConcept... As, template<typename> class Behaviour>
     struct is_query_behaviour_t<Behaviour<As...>> { static constexpr bool value = 1; };
@@ -40,28 +30,6 @@ namespace tecs
     //another implementation
     export template <class C>
     concept HasEachMethod = std::is_function_v<decltype(C::each)>;
-
-    template <class C>
-    concept IsDerivedFromArchetypeConcept = requires(C c) 
-    {
-        // IILE, that only binds to A<...> specialisations
-        // Including classes derived from them
-        [] <typename... X>(archetype_storage_t<X...>&) {}(c);
-    };
-
-    template<typename... Ts>
-    constexpr auto detect_derived_archetype(archetype_storage_t<Ts...>&&)
-    {
-        return archetype_storage_t<Ts...>{};
-    }
-    template<typename T, bool> struct unpack_derived_archetype;
-    template<typename T> struct unpack_derived_archetype<T, false> { using type = T; };
-    template<typename T> 
-    struct unpack_derived_archetype < T, true >
-    {
-        using type = decltype(detect_derived_archetype(T{}));
-    };
-    template<typename T, bool B> using unpack_derived_archetype_t = unpack_derived_archetype<T, B>::type;
 
     template<typename ArcheOrBehaviour>
     concept ArchetypeOrQueryBehaviorConcept =   IsArchetypeConcept<ArcheOrBehaviour>
@@ -117,12 +85,6 @@ namespace tecs
         using type = typename select_t<unpack_list_t>::type;
     };
 
-    template<typename... Ts> struct to_archetype_t;
-    template<typename... Ts>
-    struct to_archetype_t<mpl::typelist<Ts...>>
-    {
-        using type = archetype_storage_t<Ts...>;
-    };
 
     export struct query_t
     {
@@ -130,7 +92,7 @@ namespace tecs
         template<typename Lambda, typename... As>
         static void each_impl(Lambda&& lambda, mpl::typelist<As...>)
         {
-            (typename to_archetype_t<As>::type::template each(std::forward<Lambda>(lambda)), ...);
+            (to_archetype_t<As>::template each(std::forward<Lambda>(lambda)), ...);
         }
 
     public:
@@ -156,7 +118,7 @@ namespace tecs
         requires (ArchetypeOrQueryBehaviorConcept<ArcheOrBehaviour> && ...)
         struct with
         {
-            using archetype_list = search_t<mpl::unpack_unpack_t<unpack_derived_archetype_t<ArcheOrBehaviour, IsDerivedFromArchetypeConcept<ArcheOrBehaviour>>...>>::type;
+            using archetype_list = search_t<mpl::unpack_unpack_t<trait_base_archetype_t<ArcheOrBehaviour, IsDerivedFromArchetypeConcept<ArcheOrBehaviour>>...>>::type;
             using behaviour_list = select_behaviour_t< mpl::typelist<ArcheOrBehaviour...>>::type;
         private:
 
@@ -174,8 +136,6 @@ namespace tecs
             struct trait_behaviour_t<mpl::typelist<T, TList...>, Arche>
             {
                 using type = typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::type;
-                //using type = mpl::typelist<TList...>;
-                //using to_list = mpl::to_list_t<T>;
                 using default_type = T;
             };
             template<typename Arche> struct trait_behaviour_t<mpl::nulllist, Arche>
@@ -196,8 +156,8 @@ namespace tecs
                 else
                 {
                     using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
-                    static_assert(mpl::is_sub_v<mpl::to_list_t<typename to_archetype_t<Arche>::type>, mpl::list_remove_qualifier_t<args_type>>, "args of each are not belong to selections of `run`");
-                    typename to_archetype_t<Arche>::type::template each(&behaivour_type::each);
+                    static_assert(mpl::is_sub_v<mpl::to_list_t<to_archetype_t<Arche>>, mpl::list_remove_qualifier_t<args_type>>, "args of each are not belong to selections of `run`");
+                    to_archetype_t<Arche>::template each(&behaivour_type::each);
                 }
             }
 
@@ -208,15 +168,15 @@ namespace tecs
                 if constexpr (mpl::is_null_v<behaivour_type>)//prevent compiler error unneed.
                 {
                     using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
-                    static_assert(mpl::is_sub_v<mpl::to_list_t<typename to_archetype_t<Arche>::type>, mpl::list_remove_qualifier_t<args_type>>, "args of lambda or function are not belong to selections of `run`");
-                    typename to_archetype_t<Arche>::type::template each(lambda);
+                    static_assert(mpl::is_sub_v<mpl::to_list_t<to_archetype_t<Arche>>, mpl::list_remove_qualifier_t<args_type>>, "args of lambda or function are not belong to selections of `run`");
+                    to_archetype_t<Arche>::template each(lambda);
                     return;
                 }
                 else
                 {
                     using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
-                    static_assert(mpl::is_sub_v<mpl::to_list_t<typename to_archetype_t<Arche>::type>, mpl::list_remove_qualifier_t<args_type>>, "args of each are not belong to selections of `run`");
-                    typename to_archetype_t<Arche>::type::template each(&behaivour_type::each);
+                    static_assert(mpl::is_sub_v<mpl::to_list_t<to_archetype_t<Arche>>, mpl::list_remove_qualifier_t<args_type>>, "args of each are not belong to selections of `run`");
+                    to_archetype_t<Arche>::template each(&behaivour_type::each);
                 }
             }
 

@@ -400,10 +400,12 @@ namespace tecs
 		chunk_ptrs_t::const_iterator end() const noexcept { return chunks.begin() + length; }
 	};
 
-	export template<typename... Args>
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	template</*size_t OuterId, */typename... Args>
 	struct archetype_storage_t
 	{
 		using this_type = archetype_storage_t<Args...>;
+		//static constexpr size_t outer_id = OuterId;
 		static constexpr size_t this_id = misc::type_id_archetype<this_type>;
 		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
 
@@ -493,6 +495,8 @@ namespace tecs
 	template<typename... Args> typename archetype_storage_t<Args...>::storage_t* archetype_storage_t<Args...>::sparse_set_ptr = nullptr;
 	template<typename... Args> id_generator_t< archetype_storage_t<Args...>::this_id>  archetype_storage_t<Args...>::id_generator{};
 
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
 	template<typename... Args>
 	struct archetype_define_t
 	{
@@ -522,6 +526,55 @@ namespace tecs
 
 	export template<typename... Args>
 	using archetype_t = archetype_define_t<Args...>::type;
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	template<typename Arche> struct is_archetype_t { static constexpr bool value = 0; };
+	template<typename... Ts> struct is_archetype_t<archetype_storage_t<Ts...>> { static constexpr bool value = 1; };
+	export template<typename Arche>
+	concept IsArchetypeConcept = is_archetype_t<Arche>::value;
+
+	export template <class C>
+	concept IsDerivedFromArchetypeConcept = requires(C c)
+	{
+		// IILE
+		[] <typename... X>(archetype_storage_t<X...>&) {}(c);
+	};
+
+	template<typename... Ts>
+	constexpr auto detect_base_archetype(archetype_storage_t<Ts...>&&)
+	{
+		return archetype_storage_t<Ts...>{};
+	}
+	template<typename T, bool> struct trait_base_archetype;
+	template<typename T> struct trait_base_archetype<T, false> { using type = T; };
+	template<typename T>
+	struct trait_base_archetype < T, true >
+	{
+		using type = decltype(detect_base_archetype(T{}));
+	};
+	export template<typename T, bool B> using trait_base_archetype_t = trait_base_archetype<T, B>::type;
+
+	export template<class C> concept IsTemplateClassConcept = requires(C c)
+	{
+		[] <template<class...> class T, class... Ts>(T<Ts...>) {}(c);
+	};
+
+	template<typename... Ts> struct to_archetype;
+	template<typename... Ts>
+	struct to_archetype<mpl::typelist<Ts...>>
+	{
+		using type = archetype_storage_t<Ts...>;
+	};
+	export template <typename T> using to_archetype_t = to_archetype<T>::type;
+
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	template<class... Args>
+	struct family_t
+	{
+
+	};
 }
 
 
