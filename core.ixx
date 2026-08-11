@@ -29,9 +29,9 @@ namespace tecs
 	constexpr inline size_t FLAG_BITS = 32 - configs::ARCHETYPE_BITS;
 	constexpr inline size_t ARCHETYPE_BITS = configs::ARCHETYPE_BITS;
 
-	constexpr inline uint_t ID_MAX_COUNT = (1ull << ID_BITS);
-	constexpr inline uint_t ID_MAX = ID_MAX_COUNT - 1;
-	export const uint_t		ID_NULL = ID_MAX;
+	export constexpr inline uint_t ID_MAX_COUNT = (1ull << ID_BITS);
+	export constexpr inline uint_t ID_MAX = ID_MAX_COUNT - 1;
+	export const uint_t			   ID_NULL = ID_MAX;
 
 	export struct entity_t
 	{
@@ -81,6 +81,7 @@ namespace tecs
 	};
 	entity_t entity_t::null = { ID_NULL, 0, 0, 0 };
 
+
 	export template<size_t ArcheId>
 	class id_generator_t
 	{
@@ -89,10 +90,7 @@ namespace tecs
 		std::queue<entity_t> free;
 
 	public:
-		id_generator_t()
-		{
-			current = entity_t{ 0,0,0,ArcheId };
-		}
+		id_generator_t() { current = entity_t{ 0,0,0,ArcheId }; }
 
 		entity_t get()
 		{
@@ -122,33 +120,28 @@ namespace tecs
 			free.push(e);
 		}
 
-		bool full()
-		{
-			return current.valid();
-		}
+		bool full() { return current.valid();}
 
-		uint_t available()
-		{
-			return free.size() + ID_MAX - current.get_id();
-		}
+		uint_t available() {return free.size() + ID_MAX - current.get_id(); }
 	};
 
-	enum archetype_state_t
+	enum archetype_state_e
 	{
+		idle,
 		read,
 		write,
 	};
 
-	export enum e_archelayout
+	export enum archelayout_e
 	{
 		sparse_set,
 		singleton
 	};
 
-	template<e_archelayout Layout>
+	template<archelayout_e Layout>
 	struct archepolicy_t
 	{
-		const e_archelayout layout = Layout;
+		const archelayout_e layout = Layout;
 	};
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// 
