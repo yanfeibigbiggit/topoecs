@@ -15,11 +15,11 @@ using size_t = std::size_t;
 
 namespace tecs
 {
-    template<typename Behaviour> struct is_query_behaviour_t { static constexpr bool value = 0; };
-    template<IsArchetypeConcept... As, template<typename> class Behaviour>
-    struct is_query_behaviour_t<Behaviour<As...>> { static constexpr bool value = 1; };
-    template<typename Behaviour>
-    concept IsQueryBehaviourConcept = is_query_behaviour_t<Behaviour>::value;
+    //template<typename Behaviour> struct is_query_behaviour_t { static constexpr bool value = 0; };
+    //template<IsArchetypeConcept... As, template<typename> class Behaviour>
+    //struct is_query_behaviour_t<Behaviour<As...>> { static constexpr bool value = 1; };
+    //template<typename Behaviour>
+    //concept IsQueryBehaviourConcept = is_query_behaviour_t<Behaviour>::value;
 
     //-- don't work --//
     //export template<typename T, typename... Args> 
@@ -32,7 +32,7 @@ namespace tecs
     concept HasEachMethod = std::is_function_v<decltype(C::each)>;
 
     template<typename ArcheOrBehaviour>
-    concept ArchetypeOrQueryBehaviorConcept =   IsArchetypeConcept<ArcheOrBehaviour>
+    concept ArchetypeOrQueryBehaviourConcept =   IsArchetypeConcept<ArcheOrBehaviour>
                                              || IsDerivedFromArchetypeConcept<ArcheOrBehaviour>
                                              || (HasEachMethod<ArcheOrBehaviour>) 
                                              || (!IsTemplateClassConcept<ArcheOrBehaviour> && std::is_standard_layout_v<ArcheOrBehaviour>);
@@ -90,18 +90,18 @@ namespace tecs
     {
     private:
         template<typename Lambda, typename... As>
-        static void each_impl(Lambda&& lambda, mpl::typelist<As...>)
+        static void run_impl(Lambda&& lambda, mpl::typelist<As...>)
         {
             (to_archetype_t<As>::template each(std::forward<Lambda>(lambda)), ...);
         }
 
     public:
         template<typename Lambda>
-        static void each(Lambda&& lambda)
+        static void run(Lambda&& lambda)
         {
             using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
             using archetype_list = search_t<mpl::list_remove_qualifier_t<args_type>>::type;
-            each_impl(std::forward<Lambda>(lambda), archetype_list{});
+            run_impl(std::forward<Lambda>(lambda), archetype_list{});
         }
 
         template<typename T> struct select_behaviour_t;
@@ -115,7 +115,7 @@ namespace tecs
         struct select_behaviour_t<mpl::nulllist> { using type = mpl::nulllist; };
 
         template<typename... ArcheOrBehaviour>
-        requires (ArchetypeOrQueryBehaviorConcept<ArcheOrBehaviour> && ...)
+        requires (ArchetypeOrQueryBehaviourConcept<ArcheOrBehaviour> && ...)
         struct with
         {
             using archetype_list = search_t<mpl::unpack_unpack_t<trait_base_archetype_t<ArcheOrBehaviour, IsDerivedFromArchetypeConcept<ArcheOrBehaviour>>...>>::type;
@@ -135,8 +135,8 @@ namespace tecs
             template<typename Arche, typename T, typename... TList>
             struct trait_behaviour_t<mpl::typelist<T, TList...>, Arche>
             {
-                using type = typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::type;
-                using default_type = T;
+                using type = mpl::traits::if_else_t< IsDerivedFromArchetypeConcept<T>, T, typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::type>;
+                using default_type = mpl::traits::if_else_t< IsDerivedFromArchetypeConcept<T>, typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::type, T>;
             };
             template<typename Arche> struct trait_behaviour_t<mpl::nulllist, Arche>
             {
@@ -165,7 +165,7 @@ namespace tecs
             static void loop_impl(Lambda&& lambda, Arche)
             {
                 using behaivour_type = trait_behaviour_t<behaviour_list, Arche>::type;
-                if constexpr (mpl::is_null_v<behaivour_type>)//prevent compiler error unneed.
+                if constexpr (mpl::is_null_v<behaivour_type>)
                 {
                     using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
                     static_assert(mpl::is_sub_v<mpl::to_list_t<to_archetype_t<Arche>>, mpl::list_remove_qualifier_t<args_type>>, "args of lambda or function are not belong to selections of `run`");
@@ -202,9 +202,21 @@ namespace tecs
             template<typename Lambda>
             static void run(Lambda&& lambda)
             {
-                loop(std::forward<Lambda>(lambda), archetype_list{});
+                if constexpr(mpl::is_null_v<archetype_list>)
+                { query_t::run(std::forward<Lambda>(lambda)); }
+                else
+                { loop(std::forward<Lambda>(lambda), archetype_list{}); }
             }
+        };
 
+        template<>
+        struct with<>
+        {
+            template<typename Lambda>
+            static void run(Lambda&& lambda)
+            {
+                query_t::run(std::forward<Lambda>(lambda));
+            }
         };
     };
 

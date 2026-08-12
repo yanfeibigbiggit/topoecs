@@ -261,6 +261,14 @@ export namespace mpl
     constexpr inline bool is_null_v = is_null<T>::value;
 
     //////////////////////////////////////////////////////////
+    template<typename T> struct is_list { enum { value = is_null_v<T> }; };
+    template<typename... Ts>
+    struct is_list<typelist<Ts...>> { enum { value = 1 }; };
+
+    template<typename T>
+    constexpr inline bool is_list_v = is_list<T>::value;
+
+    //////////////////////////////////////////////////////////
     //typelist<host<...>, a, b, ...> => typelist<typelist<...>, a, b, ...>
     template<typename... TList> struct to_list_if_template;
 
