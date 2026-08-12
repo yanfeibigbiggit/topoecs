@@ -56,7 +56,7 @@ namespace tecs
 			template<typename ... Args>
 			struct type_id_t
 			{
-				static constexpr size_t value = const_counter_next();
+				static inline constexpr size_t value = const_counter_next();
 			};
 		};
 

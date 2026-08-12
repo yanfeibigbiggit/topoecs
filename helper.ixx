@@ -53,6 +53,16 @@ struct std::formatter<position_t>
 };
 
 template<>
+struct std::formatter<rotation_t>
+{
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const rotation_t& t, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "rotation:({} {} {} {})", t.u, t.v, t.w, t.y);
+    }
+};
+
+template<>
 struct std::formatter<attribute_base_t>
 {
     constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
