@@ -16,9 +16,6 @@
     <Filter Include="头文件\include">
       <UniqueIdentifier>{a6436fdd-800a-4cf0-9b36-98a879c6a548}</UniqueIdentifier>
     </Filter>
-    <Filter Include="头文件\include\ankerl">
-      <UniqueIdentifier>{7be56328-edbd-46c2-914f-3c31169b42f2}</UniqueIdentifier>
-    </Filter>
     <Filter Include="源文件\src">
       <UniqueIdentifier>{2df0cc51-2b45-40fc-9737-28a8ccc93940}</UniqueIdentifier>
     </Filter>
@@ -46,9 +43,6 @@
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="configs.ixx">
-      <Filter>头文件\include</Filter>
-    </ClCompile>
-    <ClCompile Include="temp.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="query.ixx">
@@ -81,19 +75,5 @@
     <ClCompile Include="tecs.advanced.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="include\ankerl\stl.h">
-      <Filter>头文件\include\ankerl</Filter>
-    </ClInclude>
-    <ClInclude Include="include\ankerl\unordered_dense.h">
-      <Filter>头文件\include\ankerl</Filter>
-    </ClInclude>
-    <ClInclude Include="macros.h">
-      <Filter>头文件\include</Filter>
-    </ClInclude>
-    <ClInclude Include="configs_macro.h">
-      <Filter>头文件\include</Filter>
-    </ClInclude>
   </ItemGroup>
 </Project>

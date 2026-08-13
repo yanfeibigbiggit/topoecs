@@ -156,18 +156,11 @@
     <ClCompile Include="src\ankerl\ankerl.unordered_dense.ixx" />
     <ClCompile Include="tecs.advanced.ixx" />
     <ClCompile Include="tecs.basic.ixx" />
-    <ClCompile Include="temp.ixx" />
     <ClCompile Include="threads.ixx" />
     <ClCompile Include="topoecs.cpp" />
     <ClCompile Include="typelist.ixx" />
     <ClCompile Include="utility.ixx" />
     <ClCompile Include="world.ixx" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="configs_macro.h" />
-    <ClInclude Include="include\ankerl\stl.h" />
-    <ClInclude Include="include\ankerl\unordered_dense.h" />
-    <ClInclude Include="macros.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

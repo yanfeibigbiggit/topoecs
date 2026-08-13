@@ -36,9 +36,9 @@ namespace tecs
         /// <summary>
         /// world::init must be call before any interface/class/function of tecs.
         /// </summary>
-        static constexpr void init()
+        static void init()
         {
-            std::cout << "archetypes_count " << archetypes_count << std::endl;
+            //std::cout << "archetypes_count " << archetypes_count << std::endl;
         }
     };
 }
