@@ -71,7 +71,7 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>D:\Projects\CPlus\topoecs\include;$(IncludePath)</IncludePath>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <IncludePath>D:\Projects\CPlus\topoecs\include;$(IncludePath)</IncludePath>
@@ -153,7 +153,6 @@
     <ClCompile Include="misc.ixx" />
     <ClCompile Include="mpl.ixx" />
     <ClCompile Include="query.ixx" />
-    <ClCompile Include="src\ankerl\ankerl.unordered_dense.ixx" />
     <ClCompile Include="tecs.advanced.ixx" />
     <ClCompile Include="tecs.basic.ixx" />
     <ClCompile Include="threads.ixx" />

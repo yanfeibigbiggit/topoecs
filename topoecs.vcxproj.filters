@@ -16,19 +16,10 @@
     <Filter Include="头文件\include">
       <UniqueIdentifier>{a6436fdd-800a-4cf0-9b36-98a879c6a548}</UniqueIdentifier>
     </Filter>
-    <Filter Include="源文件\src">
-      <UniqueIdentifier>{2df0cc51-2b45-40fc-9737-28a8ccc93940}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="源文件\src\ankerl">
-      <UniqueIdentifier>{b2c89f78-b575-457c-a39e-04ddbda08dd5}</UniqueIdentifier>
-    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="topoecs.cpp">
       <Filter>源文件</Filter>
-    </ClCompile>
-    <ClCompile Include="src\ankerl\ankerl.unordered_dense.ixx">
-      <Filter>源文件\src\ankerl</Filter>
     </ClCompile>
     <ClCompile Include="typelist.ixx">
       <Filter>头文件\include</Filter>
