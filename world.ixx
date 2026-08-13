@@ -18,7 +18,7 @@ namespace tecs
         struct archetype_instantiation_t { enum { value = 0 }; };
 
         template<size_t N>
-        struct archetype_instantiation_t<N, mpl::void_t<decltype(sizeof(archetype_of_id_t<N>))>>
+        struct archetype_instantiation_t<N, std::void_t<decltype(sizeof(archetype_of_id_t<N>))>>
         {
             using arche_type = typename archetype_of_id_t<N>::type;
             //make sure archetype instantiation, so query can handle compile time id correctly.

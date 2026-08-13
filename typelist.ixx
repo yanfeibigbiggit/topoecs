@@ -2,6 +2,8 @@ export module typelist;
 
 import mpl;
 
+import std;
+
 export namespace mpl
 {
     //////////////////////////////////////////////////////////
@@ -363,7 +365,7 @@ export namespace mpl
     template<typename T, typename...TList>
     struct has<typelist< TList...>, T>
     {
-        enum { value = (is_same_v<TList, T> || ... ) };
+        enum { value = (std::is_same_v<TList, T> || ... ) };
     };
     template<typename TList, typename T>
     constexpr inline bool has_v = has<TList, T>::value;
@@ -426,7 +428,7 @@ export namespace mpl
     template<typename Target, typename T, typename... TList>
     struct first_of_not<typelist<T, TList...>, Target>
     {
-        using type = traits::if_else_t<is_same_v<T, Target>, typename first_of_not<typelist<TList...>, Target>::type, T>;
+        using type = traits::if_else_t<std::is_same_v<T, Target>, typename first_of_not<typelist<TList...>, Target>::type, T>;
     };
     template<typename T> 
     struct first_of_not<typelist<>, T>
@@ -443,7 +445,7 @@ export namespace mpl
     struct has_raw_reference_of_t<typelist<TList...>, Target>
     {
         using raw_taregt = traits::remove_qualifier_t<Target>;
-        enum { value = ((is_same_v<traits::remove_qualifier_t<TList>, raw_taregt> && is_reference_v<TList>) || ...) };
+        enum { value = ((std::is_same_v<traits::remove_qualifier_t<TList>, raw_taregt> && std::is_reference_v<TList>) || ...) };
     };
 
     template<typename TList, typename Target> constexpr inline bool has_raw_reference_of_v = has_raw_reference_of_t<TList, Target>::value;
@@ -455,7 +457,7 @@ export namespace mpl
     template<typename T, typename... TList, typename Target>
     struct same_or_has<typelist<T, TList...>, Target>
     {
-        enum { value = is_same_v<T, Target> || same_or_has<TList...>::value };
+        enum { value = std::is_same_v<T, Target> || same_or_has<TList...>::value };
     };
 
     template<typename... Params, template<typename> class H, typename... TList, typename Target>

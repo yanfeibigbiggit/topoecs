@@ -33,6 +33,8 @@ namespace tecs
 	export constexpr inline uint_t ID_MAX = ID_MAX_COUNT - 1;
 	export const uint_t			   ID_NULL = ID_MAX;
 
+	constexpr inline size_t SPARSE_INDEX_NULL = std::numeric_limits<uint_t>::max();
+
 	export struct entity_t
 	{
 	private:
@@ -50,7 +52,6 @@ namespace tecs
 		{
 			id = id_; ver = version_; flag = flag_; arche = arche_;
 		}
-		//entity_t& operator=(entity_t&& ent) = default;
 
 		uint_t get_id() const { return id; }
 		uint_t get_version() const { return ver; }
@@ -64,7 +65,7 @@ namespace tecs
 		void set_flag(uint_t flag_) { flag = flag_; }
 		void set_arche(uint_t arche_) { arche = arche_; }
 
-		bool same_id_version(entity_t other)
+		bool is_same(entity_t other)
 		{
 			if(other.id != id) { return false; }
 			if (other.ver != ver) { return false; }
@@ -125,6 +126,39 @@ namespace tecs
 		uint_t available() {return free.size() + ID_MAX - current.get_id(); }
 	};
 
+	template<size_t ArcheId>
+	struct global_sparse_index_t
+	{
+	private:
+		static xvector<uint_t> indexies;
+	public:
+		inline uint_t try_dense_id(uint_t sparse_id, bool larger_than_resize)
+		{
+			if (sparse_id < indexies.size())[[likeyly]]
+			{
+				return indexies[sparse_id];
+			}
+			else if(larger_than_resize)
+			{
+				spinlock_t spin;
+				spin.lock();
+				if (sparse_id >= indexies.size())
+				{
+					auto newsize = (uint_t)(sparse_id * 1.4);
+					newsize = newsize >= ID_MAX_COUNT ? ID_MAX_COUNT : newsize;
+					indexies.resize(newsize, SPARSE_INDEX_NULL);
+				}
+				spin.unlock();
+			}
+			return SPARSE_INDEX_NULL;
+		}
+		inline void set_index(uint_t sparse_id, int dense_id) 
+		{ 
+			
+		}
+	};
+	template<size_t ArcheId> xvector<uint_t> global_sparse_index_t<ArcheId>::indexies(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT, SPARSE_INDEX_NULL);
+
 	enum archetype_state_e
 	{
 		idle,
@@ -156,8 +190,6 @@ namespace tecs
 	template<typename... Args>
 	struct sparse_set_t
 	{
-		static constexpr size_t SPARSE_INDEX_NULL = std::numeric_limits<uint_t>::max();
-
 		static constexpr size_t ROW_SIZE = (misc::data_size_of_t<Args...>::value + sizeof(entity_t) + sizeof(uint_t));
 
 		static constexpr size_t decide_element_per_chunk()
@@ -202,19 +234,19 @@ namespace tecs
 
 			template<typename T> const auto& column() const { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
-			template<typename T>
-			inline void get_component(uint_t dense_index, T&& arg)
-			{
-				auto& container = column<T>();
-				arg = container[dense_index];
-			}
+			//template<typename T>
+			//inline void get_component(uint_t dense_index, T&& arg)
+			//{
+			//	auto& container = column<T>();
+			//	arg = container[dense_index];
+			//}
 
-			template<typename T>
-			inline void get_component(uint_t dense_index, const T&& arg) const
-			{
-				const auto& container = column<T>();
-				arg = container[dense_index];
-			}
+			//template<typename T>
+			//inline void get_component(uint_t dense_index, const T&& arg) const
+			//{
+			//	const auto& container = column<T>();
+			//	arg = container[dense_index];
+			//}
 			template<typename T>
 			inline T& get_component(uint_t dense_index)
 			{
@@ -236,17 +268,17 @@ namespace tecs
 			}
 
 		public:
-			template<typename... Ts>
-			inline bool get_components(entity_t ent, Ts&&...args)
-			{
-				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
-				uint_t dense_index = indexies[sparse_index];
-				if (SPARSE_INDEX_NULL == dense_index)
-				{ return false; }
+			//template<typename... Ts>
+			//inline bool get_components(entity_t ent, Ts&&...args)
+			//{
+			//	uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
+			//	uint_t dense_index = indexies[sparse_index];
+			//	if (SPARSE_INDEX_NULL == dense_index)
+			//	{ return false; }
 
-				((get_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
-				return true;
-			}
+			//	((get_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
+			//	return true;
+			//}
 
 			template<typename... Ts>
 			inline bool set_components(entity_t ent, Ts&&...args)
@@ -263,7 +295,7 @@ namespace tecs
 				{
 					entity_t& target_ent = get_component<entity_t>(dense_index);
 					//must be same entity
-					if (!target_ent.same_id_version(ent))
+					if (!target_ent.is_same(ent))
 					{ return false; }
 				}
 				((set_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
@@ -282,7 +314,7 @@ namespace tecs
 				{ return false; }
 				entity_t& target_ent = get_component<entity_t>(dense_index);
 				//must be same entity
-				if (!target_ent.same_id_version(ent))
+				if (!target_ent.is_same(ent))
 				{ return false; }
 				entity_t& last_ent = get_component<entity_t>(length - 1);
 				uint_t last_sparse_index = last_ent.sparse_id< COUNT_PER_CHUNK>();
@@ -408,11 +440,38 @@ namespace tecs
 	};
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	template</*size_t OuterId, */typename... Args>
+	template<typename... Args>
+	struct sort_component_t
+	{
+	private:
+		using unpack_list_t = mpl::no_duplicate_t<mpl::unpack_t<entity_t, Args...>>;
+
+		template<size_t... I>
+		static constexpr auto apply_impl(std::index_sequence<I...>)
+		{
+			using type = mpl::typelist<mpl::at<I, unpack_list_t>::type...>;
+			return type{};
+		}
+
+		static constexpr auto apply()
+		{
+			constexpr auto storage = apply_impl(
+				misc::constexpr_array_to_index_sequence < 
+					misc::sort_index_sequence(unpack_list_t{}) > (
+						std::make_index_sequence<mpl::length<unpack_list_t>::value>{}));
+
+			return storage;
+		}
+
+	public:
+		using type = decltype(apply());
+	};
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	template<typename... Args>
 	struct archetype_storage_t
 	{
 		using this_type = archetype_storage_t<Args...>;
-		//static constexpr size_t outer_id = OuterId;
 		static constexpr size_t this_id = misc::type_id_archetype<this_type>;
 		enum { map_component_archetype = misc::map_component_archetype<this_id, mpl::typelist<Args...>>::value };
 
@@ -424,11 +483,11 @@ namespace tecs
 
 		static storage_t* try_sparse_set()
 		{
-			if (sparse_set_ptr == nullptr)
+			if (nullptr == sparse_set_ptr)
 			{
 				spinlock_t spin;
 				spin.lock();
-				if (sparse_set_ptr == nullptr)
+				if (nullptr == sparse_set_ptr)
 				{
 					sparse_set_ptr = new storage_t();
 				}
@@ -442,7 +501,7 @@ namespace tecs
 		template<typename Lambda, typename... Ts>
 		static void each_impl(Lambda&& lambda, mpl::typelist<Ts...>)
 		{
-			static_assert(!mpl::has_raw_reference_of_v<mpl::typelist<Ts...>, entity_t>, "each() function: forbidden reference of entity_t");
+			static_assert(!mpl::has_raw_reference_of_v<mpl::typelist<Ts...>, entity_t>, "each() function: forbidden reference to entity_t");
 			if(nullptr == sparse_set_ptr) [[unlikely]]
 			{ return; }
 			for (auto chunk : *sparse_set_ptr)
@@ -475,15 +534,15 @@ namespace tecs
 			sparse_set_ptr->remove(ent);
 		}
 
-		template<typename... Ts>
-		static bool get(entity_t ent, Ts&&... args)
-		{
-			auto chunk_id = ent.chunk_id< storage_t::COUNT_PER_CHUNK>();
-			if(nullptr == sparse_set_ptr) [[unlikely]]
-			{ return false; }
-			sparse_set_ptr->get_components(ent, std::forward<Ts>(args)...);
-			return true;
-		}
+		//template<typename... Ts>
+		//static bool get(entity_t ent, Ts&&... args)
+		//{
+		//	auto chunk_id = ent.chunk_id< storage_t::COUNT_PER_CHUNK>();
+		//	if(nullptr == sparse_set_ptr) [[unlikely]]
+		//	{ return false; }
+		//	sparse_set_ptr->get_components(ent, std::forward<Ts>(args)...);
+		//	return true;
+		//}
 
 		template<typename... Ts>
 		static void each(void(*func)(Ts...))

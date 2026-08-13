@@ -31,7 +31,7 @@ namespace tecs
         template<size_t N, typename Prev, typename = void> struct apply_t { using type = Prev; };
 
         template<size_t N, typename... Prev>
-        struct apply_t<N, mpl::typelist<Prev...>, mpl::void_t<decltype(sizeof(archetype_of_id_t<N>))>>
+        struct apply_t<N, mpl::typelist<Prev...>, std::void_t<decltype(sizeof(archetype_of_id_t<N>))>>
         {
             enum { has = misc::type_map_t<T>:: template has<N>() };
             using arche_type = typename archetype_of_id_t<N>::type;
@@ -115,7 +115,7 @@ namespace tecs
             template<typename Arche, typename... Bs, template<typename> class BehaviourOrArche, typename... TList>
             struct trait_behaviour_t<mpl::typelist<BehaviourOrArche<Bs...>, TList...>, Arche>
             {
-                using type = mpl::traits::if_else_t<mpl::is_same_v<mpl::to_list_t<mpl::at_t<0, mpl::typelist<Bs...>>>, Arche>, 
+                using type = mpl::traits::if_else_t<std::is_same_v<mpl::to_list_t<mpl::at_t<0, mpl::typelist<Bs...>>>, Arche>, 
                                                     BehaviourOrArche<Bs...>, 
                                                     typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::type>;
                 using default_type = typename trait_behaviour_t<mpl::typelist<TList...>, Arche>::default_type;
@@ -137,7 +137,7 @@ namespace tecs
             static void loop_impl()
             {
                 using found_type = trait_behaviour_t<behaviour_list, Arche>::type;
-                using behaivour_type = mpl::traits::if_else_t<mpl::is_same_v<found_type, mpl::nulllist>, typename trait_behaviour_t<behaviour_list, Arche>::default_type, found_type>;
+                using behaivour_type = mpl::traits::if_else_t<std::is_same_v<found_type, mpl::nulllist>, typename trait_behaviour_t<behaviour_list, Arche>::default_type, found_type>;
                 static_assert(!mpl::is_null_v<behaivour_type>, "you need to pass a class with static each() to template parameter of run<...>. like: template<> class something<> { each(...) {...}");
                 if constexpr(mpl::is_null_v<behaivour_type>)//prevent compiler error unneed.
                 { return; }
