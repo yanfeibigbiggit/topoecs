@@ -13,9 +13,9 @@ namespace tecs
 	namespace misc
 	{
 		using size_t = std::size_t;
-		//////////////////////////////////////////////////////////
-		//type_id_counter_t
-		//////////////////////////////////////////////////////////
+		////////////////////////////////////////////////////////////
+		////type_id_counter_t
+		////////////////////////////////////////////////////////////
 		template<typename UniqueTag>
 		struct type_id_counter_t
 		{
@@ -184,14 +184,14 @@ namespace tecs
 			template<size_t N>
 			struct type_map_flag
 			{
-				//return must be `auto` for requires statement in push_type_pair()
+				//return must be `auto` for requires statement in push()
 				friend constexpr auto adl_type_map_flag(type_map_flag<N>);
 			};
 
 			template<size_t N>
 			struct type_map_writer
 			{
-				//return must be `auto` for requires statement in push_type_pair()
+				//return must be `auto` for requires statement in push()
 				friend constexpr auto adl_type_map_flag(type_map_flag<N>)
 				{
 					return N;
@@ -200,7 +200,7 @@ namespace tecs
 			};
 		public:
 			template<size_t N>
-			[[nodiscard]] static consteval size_t push()
+			static consteval size_t push()
 			{
 				type_map_writer<N> writer;
 				writer.nothing();
@@ -237,5 +237,67 @@ namespace tecs
 		template<size_t ID>
 		struct map_component_archetype<ID, mpl::nulllist > { enum { value = std::numeric_limits<size_t>::max() }; };
 	}
+
+
+	//namespace misc
+	//{
+	//	//////////////////////////////////////////////////////////
+	//	// https://www.reddit.com/r/cpp/comments/6ydxya/comment/dmmoveu/
+	//	//////////////////////////////////////////////////////////
+	//	template <typename TAG, int N>
+	//	struct tag {
+	//		friend auto loophole(tag<TAG, N>);
+	//		constexpr friend int cloophole(tag<TAG, N>);
+	//	};
+
+	//	/*
+	//	  The definitions of friend functions.
+	//	*/
+	//	template <typename TAG, typename U, int N, bool B>
+	//	struct fn_def {
+	//		friend auto loophole(tag<TAG, N>) { return U{}; }
+	//		constexpr friend int cloophole(tag<TAG, N>) { return 0; }
+	//	};
+
+	//	/*
+	//	  This specialization is to avoid multiple definition errors.
+	//	*/
+	//	template <typename TAG, typename U, int N>
+	//	struct fn_def<TAG, U, N, true> {};
+
+	//	/*
+	//	  This has a templated conversion operator which in turn triggers instantiations.
+	//	  Important point, using sizeof seems to be more reliable. Also default template
+	//	  arguments are "cached" (I think). To fix that I provide a U template parameter to
+	//	  the ins functions which do the detection using constexpr friend functions and SFINAE.
+	//	*/
+	//	template <typename TAG, int N>
+	//	struct c_op {
+	//		template <typename U, int M>
+	//		static auto ins(...) -> int;
+	//		template <typename U, int M, int = cloophole(tag<TAG, M>{}) >
+	//		static auto ins(int) -> char;
+
+	//		template <typename U, int = sizeof(fn_def<TAG, U, N, sizeof(ins<U, N>(0)) == sizeof(char)>)>
+	//		operator U* ();
+	//	};
+
+	//	export template <typename T, typename TAG = void, int N = 1,
+	//		bool b = (sizeof(c_op<TAG, N>::template ins<T, N>(0)) == sizeof(char))>
+	//		struct tid {
+	//		const static int value = tid<T, TAG, N + 1>::value;
+	//	};
+
+	//	export template <typename T, typename TAG, int N>
+	//		struct tid<T, TAG, N, false> {
+	//		typedef decltype(static_cast<T*>(c_op<TAG, N>{}), 0) X;
+	//		const static int value = N;
+	//	};
+
+	//	export template <int N, typename TAG = void>
+	//		struct type_by_id {
+	//		typedef decltype(loophole(tag<TAG, N>())) type;
+	//	};
+	//}
 }
 

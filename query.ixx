@@ -15,27 +15,15 @@ using size_t = std::size_t;
 
 namespace tecs
 {
-    //template<typename Behaviour> struct is_query_behaviour_t { static constexpr bool value = 0; };
-    //template<IsArchetypeConcept... As, template<typename> class Behaviour>
-    //struct is_query_behaviour_t<Behaviour<As...>> { static constexpr bool value = 1; };
-    //template<typename Behaviour>
-    //concept IsQueryBehaviourConcept = is_query_behaviour_t<Behaviour>::value;
 
-    //-- don't work --//
-    //export template<typename T, typename... Args> 
-    //concept HasStaticEachFuncConcept = requires(Args... args)
-    //{
-    //    { T::each(args...) } -> std::same_as<void>;
-    //};
-    //another implementation
     export template <class C>
     concept HasEachMethod = std::is_function_v<decltype(C::each)>;
 
     template<typename ArcheOrBehaviour>
-    concept ArchetypeOrQueryBehaviourConcept =   IsArchetypeConcept<ArcheOrBehaviour>
-                                             || IsDerivedFromArchetypeConcept<ArcheOrBehaviour>
-                                             || (HasEachMethod<ArcheOrBehaviour>) 
-                                             || (!IsTemplateClassConcept<ArcheOrBehaviour> && std::is_standard_layout_v<ArcheOrBehaviour>);
+    concept QueryableConcept =     IsArchetypeConcept<ArcheOrBehaviour>
+                                || IsDerivedFromArchetypeConcept<ArcheOrBehaviour>
+                                || (HasEachMethod<ArcheOrBehaviour>) 
+                                || (!IsTemplateClassConcept<ArcheOrBehaviour> && std::is_standard_layout_v<ArcheOrBehaviour>);
 
     template<typename T>
     struct get_archetypes_of_component
@@ -115,7 +103,7 @@ namespace tecs
         struct select_behaviour_t<mpl::nulllist> { using type = mpl::nulllist; };
 
         template<typename... ArcheOrBehaviour>
-        requires (ArchetypeOrQueryBehaviourConcept<ArcheOrBehaviour> && ...)
+        requires (QueryableConcept<ArcheOrBehaviour> && ...)
         struct with
         {
             using archetype_list = search_t<mpl::unpack_unpack_t<trait_base_archetype_t<ArcheOrBehaviour, IsDerivedFromArchetypeConcept<ArcheOrBehaviour>>...>>::type;
@@ -190,7 +178,6 @@ namespace tecs
             template<typename Lambda, typename... As>
             static void loop(Lambda&& lambda, mpl::typelist<As...>)
             {
-                //((std::cout << typeid(As).name() << std::endl), ...);
                 (loop_impl(std::forward<Lambda>(lambda), As{}), ...);
             }
 
@@ -222,11 +209,11 @@ namespace tecs
 
 
     //export template<typename... Args>
-    struct hierarchy_task_t
-    {
-        static void run()
-        {
+    //struct hierarchy_task_t
+    //{
+    //    static void run()
+    //    {
 
-        }
-    };
+    //    }
+    //};
 }

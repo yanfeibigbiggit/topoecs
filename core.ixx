@@ -138,11 +138,18 @@ namespace tecs
 		singleton
 	};
 
-	template<archelayout_e Layout>
+	template<archelayout_e Layout, size_t ChunkMemSize = configs::ARCHETYPE_CHUNK_MEM_SIZE, size_t ChunkMinCapcity = 1, size_t ChunkMaxCapcity = 512>
 	struct archepolicy_t
 	{
-		const archelayout_e layout = Layout;
+		const archelayout_e LAYOUT = Layout;
+		const size_t CHUNK_MEM_SIZE = ChunkMemSize;
+		const size_t CHUNK_MIN_CAPACITY = ChunkMinCapcity;
+		const size_t CHUNK_MAX_CAPACITY = ChunkMaxCapcity;
 	};
+
+	using archepolicy_default_t = archepolicy_t<sparse_set>;
+	using archepolicy_singleton_t = archepolicy_t<singleton, 1, 1, 1>;
+
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -155,7 +162,7 @@ namespace tecs
 
 		static constexpr size_t decide_element_per_chunk()
 		{
-			size_t count = maths::round_power_2(configs::ARCHETYPE_CHUNK_ALLOC_LENGTH / ROW_SIZE);
+			size_t count = maths::round_power_2(configs::ARCHETYPE_CHUNK_MEM_SIZE / ROW_SIZE);
 			count = count < 1 ? 1 : count;
 			return count;
 		}
@@ -541,6 +548,9 @@ namespace tecs
 		[] <typename... X>(archetype_storage_t<X...>&) {}(c);
 	};
 
+	export template<class T>
+	concept IsArcheOrComoponentConcept = IsArchetypeConcept<T> || IsDerivedFromArchetypeConcept<T>;// || std::is_standard_layout_v<T>;
+
 	template<typename... Ts>
 	constexpr auto detect_base_archetype(archetype_storage_t<Ts...>&&)
 	{
@@ -570,7 +580,7 @@ namespace tecs
 
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	template<class... Args>
+	template<IsArcheOrComoponentConcept... Args>
 	struct family_t
 	{
 
