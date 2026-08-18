@@ -53,18 +53,23 @@ export struct attribute_advance_t
     int defence_elements;
 };
 
-export struct skinrender_t
+export struct render_t
 {
     int share_mesh;
     int mat;
-    int texture;
 };
 
-export struct vertexrender_t
+export struct material_t
 {
-    int share_mesh;
-    int mat;
     int texture;
+    int color;
+};
+
+export struct texture_t
+{
+    int width;
+    int height;
+    int address;
 };
 
 export struct movment_t

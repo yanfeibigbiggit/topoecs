@@ -1,7 +1,6 @@
 export module typelist;
 
 import mpl;
-
 import std;
 
 export namespace mpl
@@ -50,9 +49,9 @@ export namespace mpl
 
 
     //////////////////////////////////////////////////////////
-    template<unsigned int N, typename... TList> struct at;
+    template<size_t N, typename... TList> struct at;
 
-    template<unsigned int N, typename T, typename... TList>
+    template<size_t N, typename T, typename... TList>
     struct at< N, typelist<T, TList...> >
     {
         typedef typename at< N - 1, typelist<TList...> >::type type;
@@ -69,7 +68,7 @@ export namespace mpl
     {
         typedef nulllist type;
     };
-    template<unsigned int N, typename TList> using at_t = at<N, TList>::type;
+    template<size_t N, typename TList> using at_t = at<N, TList>::type;
 
     //////////////////////////////////////////////////////////
     template<int A, int B>
@@ -99,7 +98,7 @@ export namespace mpl
     };
 
     //////////////////////////////////////////////////////////
-    template<typename A, typename B> struct concat;
+    template<typename A, typename B> struct concat { typedef typelist<A, B> type; };
 
     template<typename... A, typename... B>
     struct concat<typelist<A...>, typelist<B...> >
@@ -118,6 +117,8 @@ export namespace mpl
     {
         typedef typelist<T, TList...>  type;
     };
+
+    template<typename A, typename B> using concat_t = concat<A, B>::type;
 
     //////////////////////////////////////////////////////////
     //concat L and R. if R is list, unpack it. And never unpack L.
@@ -451,6 +452,19 @@ export namespace mpl
     template<typename TList, typename Target> constexpr inline bool has_raw_reference_of_v = has_raw_reference_of_t<TList, Target>::value;
 
     //////////////////////////////////////////////////////////
+    //has any of that raw type is Target, ignore any qualifier. raw type of( Target&, Target*,....) is Target.
+    template<typename TList, typename Target> struct has_raw_of_t;
+
+    template<typename Target, typename... TList>
+    struct has_raw_of_t<typelist<TList...>, Target>
+    {
+        using raw_taregt = traits::remove_qualifier_t<Target>;
+        enum { value = (std::is_same_v<traits::remove_qualifier_t<TList>, raw_taregt> || ...) };
+    };
+
+    template<typename TList, typename Target> constexpr inline bool has_raw_of_v = has_raw_of_t<TList, Target>::value;
+
+    //////////////////////////////////////////////////////////
     // typelist<a,b...> has Target, or T is Target
     template<typename TList, typename T> struct same_or_has { enum { value = 0 }; };
 
@@ -496,4 +510,93 @@ export namespace mpl
     template<typename TList, typename T> using first_of_has_t = first_of_has<TList, T>::type;
 
 
+}
+
+export namespace mpl
+{
+    namespace seq
+    {
+        //////////////////////////////////////////////////////////
+        template<size_t... Is>
+        struct indexlist {};
+
+        typedef indexlist<> nulllist;
+
+        //////////////////////////////////////////////////////////
+        template<size_t... Is> struct length { enum { value = sizeof...(Is) }; };
+
+        //////////////////////////////////////////////////////////
+        template<size_t I, typename Is> struct push_front;
+
+        template<size_t I, size_t... Is>
+        struct push_front< I, indexlist<Is...> >
+        {
+            using type = indexlist<I, Is...>;
+        };
+        template<size_t I, typename Is> using push_front_t = push_front<I, Is>::type;
+
+        //////////////////////////////////////////////////////////
+        template<typename Is> struct pop_front;
+
+        template<size_t I, size_t... Is>
+        struct pop_front<indexlist<I, Is...> >
+        {
+            using type = indexlist<Is...>;
+        };
+
+        template<>
+        struct pop_front<nulllist>
+        {
+            using type = nulllist;
+        };
+        template<typename Is> using pop_front_t = pop_front<Is>::type;
+
+        //////////////////////////////////////////////////////////
+        template<size_t N, typename Is> struct at;
+
+        template<size_t N, size_t I, size_t... Is>
+        struct at< N, indexlist<I, Is...> >
+        {
+            static constexpr inline size_t value = at< N - 1, indexlist<Is...> >::value;
+        };
+
+        template<size_t I, size_t... Is>
+        struct at< 0, indexlist<I, Is...> >
+        {
+            static constexpr inline size_t value = I;
+        };
+
+        template<>
+        struct at< 0, nulllist >
+        {
+            static constexpr inline size_t value = -1;
+        };
+        template<size_t N, typename TList> using at_t = at<N, TList>::value;
+
+
+        //////////////////////////////////////////////////////////
+        template<typename A, typename B> struct concat;
+
+        template<size_t... A, size_t... B>
+        struct concat<indexlist<A...>, indexlist<B...> >
+        {
+            using type = indexlist<A..., B...>;
+        };
+
+        template<typename A, typename B> using concat_t = concat<A, B>::type;
+
+        //////////////////////////////////////////////////////////
+        template<typename Is> struct max;
+
+        template<size_t I, size_t... Is>
+        struct max<indexlist<I, Is...>>
+        {
+            static constexpr inline size_t value = I > indexlist<Is...>::value ? I : indexlist<Is...>::value;
+        };
+        template<>
+        struct max<nulllist>
+        {
+            static constexpr inline size_t value = -1;
+        };
+    }
 }

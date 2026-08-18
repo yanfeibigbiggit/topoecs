@@ -2,6 +2,7 @@ export module helper;
 
 import tecs.basic;
 import component_defines;
+import typelist;
 
 import std;
 
@@ -29,6 +30,12 @@ export namespace helper
     {
         xstring name = typeid(T).name();
         return replace_all(name, "struct ", "");
+    }
+
+    export template<typename... TList>
+    inline void print_typelist(mpl::typelist<TList...>)
+    {
+        ((std::cout << typeid(TList).name() << std::endl), ...);
     }
 }
 

@@ -45,22 +45,22 @@ namespace tecs
         };
 
         //////////////////////////////////////////////////////////////////////
-        template<typename T>
-        struct HasMethod {
-            static constexpr bool value = false;
-        };
+        //template<typename T>
+        //struct HasMethod {
+        //    static constexpr bool value = false;
+        //};
 
-        // Non-static member function pointer
-        template<typename R, typename C, typename... A>
-        struct HasMethod<R(C::*)(A...)> {
-            static constexpr bool value = true;
-        };
+        //// Non-static member function pointer
+        //template<typename R, typename C, typename... A>
+        //struct HasMethod<R(C::*)(A...)> {
+        //    static constexpr bool value = true;
+        //};
 
-        // Static member function pointer (regular function pointer)
-        template<typename R, typename... A>
-        struct HasMethod<R(*)(A...)> {
-            static constexpr bool value = true;
-        };
+        //// Static member function pointer (regular function pointer)
+        //template<typename R, typename... A>
+        //struct HasMethod<R(*)(A...)> {
+        //    static constexpr bool value = true;
+        //};
 
         //---- example ----//
         //template<typename T>

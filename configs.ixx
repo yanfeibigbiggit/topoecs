@@ -24,10 +24,15 @@ namespace tecs
         /// </summary>
         export inline const size_t ARCHETYPES_MAX = 1 << ARCHETYPE_BITS;
         /// <summary>
-        /// The memory size of a chunk holding the archetype. 
+        /// The memory size of a chunk holding a archetype. 
         /// The actual allocated memory will be the value closest to this size(aligned to a power of 2).
         /// </summary>
-        export inline const size_t ARCHETYPE_CHUNK_MEM_SIZE = 16 * 1024;
+        export inline const size_t ARCHETYPE_STANDARD_CHUNK_MEM_SIZE = 16 * 1024;
+        /// <summary>
+        /// The memory size of a chunk holding a global archetype. 
+        /// The actual allocated memory will be the value closest to this size(aligned to a power of 2).
+        /// </summary>
+        export inline const size_t ARCHETYPE_GLOBAL_CHUNK_MEM_SIZE = 64 * 1024;
         /// <summary>
         /// the init sparse array size of one sparse set
         /// </summary>
