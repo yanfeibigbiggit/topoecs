@@ -201,7 +201,6 @@ namespace tecs
             template<typename Lambda>
             static void run(Lambda&& lambda)
             {
-                std::cout << typeid(archetype_list).name() << std::endl;
                 if constexpr(mpl::is_null_v<archetype_list>)
                 { query_t::run(std::forward<Lambda>(lambda)); }
                 else
