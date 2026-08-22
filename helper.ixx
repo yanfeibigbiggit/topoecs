@@ -70,6 +70,16 @@ struct std::formatter<rotation_t>
 };
 
 template<>
+struct std::formatter<scale_t>
+{
+    constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }
+
+    auto format(const scale_t& t, std::format_context& ctx) const {
+        return std::format_to(ctx.out(), "scale:({} {} {})", t.x, t.y, t.z);
+    }
+};
+
+template<>
 struct std::formatter<attribute_base_t>
 {
     constexpr auto parse(std::format_parse_context& ctx) { return ctx.begin(); }

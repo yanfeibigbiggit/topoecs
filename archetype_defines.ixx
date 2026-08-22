@@ -25,7 +25,10 @@ REGISTER_STATIC_ARCHETYPE(hurtable_unit_t);
 export using movable_unit_t = tecs::archetype_standard_t<transform_t, movment_t>;
 REGISTER_STATIC_ARCHETYPE(movable_unit_t);
 
-export using movable_unit_renderable_t = tecs::archetype_standard_t<transform_t, movment_t, renderable_t>;
+export using movable_renderable_t = tecs::archetype_standard_t<movable_unit_t, renderable_t>;
+REGISTER_STATIC_ARCHETYPE(movable_renderable_t);
+
+export using movable_unit_renderable_t = tecs::archetype_standard_t<movable_renderable_t, hurtable_unit_t>;
 REGISTER_STATIC_ARCHETYPE(movable_unit_renderable_t);
 
 export using hurtable_movable_unit_t = tecs::archetype_standard_t<movable_unit_t, hurtable_unit_t>;
@@ -33,6 +36,13 @@ REGISTER_STATIC_ARCHETYPE(hurtable_movable_unit_t);
 
 export using hurtable_movable_renderable_unit_t = tecs::archetype_standard_t<movable_unit_renderable_t, hurtable_unit_t, animation_t>;
 REGISTER_STATIC_ARCHETYPE(hurtable_movable_renderable_unit_t);
+
+
+
+
+
+
+
 
 //export using abt = tecs::archetype_t<at, bt>;
 //REGISTER_STATIC_ARCHETYPE(abt);

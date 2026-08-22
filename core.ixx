@@ -128,7 +128,7 @@ namespace tecs
 		uint_t available() noexcept {return free.size() + ID_MAX - current.get_id(); }
 	};
 
-	export template<size_t FromArcheId, size_t GlobalArcheId>
+	template<size_t FromArcheId, size_t GlobalArcheId>
 	struct sparse_index_global_t
 	{
 	private:
@@ -166,41 +166,38 @@ namespace tecs
 	{
 		miss,
 		outdate,
-		exist,
+		alive,
 	};
 
-	enum archetype_state_e
+
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	template<typename Derived> struct archetype_base_t;
+	template<typename... Args> struct archetype_global_t;
+
+	export template <class C>
+	concept IsDerivedArchetypeConcept = requires(C c)
 	{
-		idle,
-		read,
-		write,
+		// IILE
+		[] <typename... X>(archetype_base_t<X...>&) {}(c);
 	};
 
-	export enum archelayout_e
+	export template<typename T> struct is_global_archetype_t { static constexpr inline bool value = 0; };
+	export template<typename... TList> struct is_global_archetype_t<archetype_global_t<TList...>> { static constexpr inline bool value = 1; };
+	export template<typename T> constexpr bool is_global_archetype_v = is_global_archetype_t<T>::value;
+
+	template<typename... Args> struct to_archetype_global_type;
+	template<typename... Args>
+	struct to_archetype_global_type<mpl::typelist<Args...>>
 	{
-		paged,
-		global,
-		singleton,
+		using type = archetype_global_t<Args...>;
 	};
-
-	template<archelayout_e Layout, size_t ChunkMemSize = configs::ARCHETYPE_STANDARD_CHUNK_MEM_SIZE, size_t ChunkMinCapcity = 1, size_t ChunkMaxCapcity = 512>
-	struct archepolicy_t
-	{
-		const archelayout_e LAYOUT = Layout;
-		const size_t CHUNK_MEM_SIZE = ChunkMemSize;
-		const size_t CHUNK_MIN_CAPACITY = ChunkMinCapcity;
-		const size_t CHUNK_MAX_CAPACITY = ChunkMaxCapcity;
-	};
-
-	using archepolicy_paged_defalut_t = archepolicy_t<paged>;
-	using archepolicy_singleton_t = archepolicy_t<singleton, 1, 1, 1>;
-
+	template<typename Args> using to_archetype_global_t = to_archetype_global_type<Args>::type;
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// 
 	////////////////////////////////////////////////////////////////////////////////////////////////
-	export template<typename... Args> struct sparse_set_global_t;
-	export template<typename... Args>
-	struct sparse_set_global_t<mpl::typelist<Args...>>
+	template<typename Arche, typename... Args> struct sparse_set_paged_t;
+	template<typename Arche, typename... Args>
+	struct sparse_set_paged_t<Arche, mpl::typelist<Args...>>
 	{
 		static constexpr size_t ROW_SIZE = (misc::data_size_of_t<Args...>::value + sizeof(entity_t));
 		static constexpr size_t decide_element_per_chunk()
@@ -213,7 +210,6 @@ namespace tecs
 
 		static inline uint_t to_chunk_paged_id(uint_t dense_id) 
 		{ return dense_id & (COUNT_PER_CHUNK - 1); }
-	
 
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// 
@@ -224,12 +220,8 @@ namespace tecs
 			using elements_t = xarray<T, COUNT_PER_CHUNK>;
 			elements_t values{};
 
-			T& operator[](uint_t index) noexcept { return values[index]; }
-			const T& operator[](uint_t index) const noexcept { return values[index]; }
-
-			elements_t::iterator begin() noexcept { return values.begin(); }
-
-			elements_t::const_iterator end() const noexcept { return values.end(); }
+			//T& operator[](uint_t index) noexcept { return values[index]; }
+			//const T& operator[](uint_t index) const noexcept { return values[index]; }
 		};
 		template<>
 		struct column_t<entity_t>
@@ -237,9 +229,8 @@ namespace tecs
 			using elements_t = xarray<entity_t, COUNT_PER_CHUNK>;
 			elements_t values = utility::make_array<entity_t, COUNT_PER_CHUNK>(entity_t::null);
 
-			elements_t::iterator begin() noexcept { return values.begin(); }
-
-			elements_t::const_iterator end() const noexcept { return values.end(); }
+			//entity_t& operator[](uint_t index) noexcept { return values[index]; }
+			//const entity_t& operator[](uint_t index) const noexcept { return values[index]; }
 		};
 		////////////////////////////////////////////////////////////////////////////////////////////////
 		// 
@@ -262,49 +253,91 @@ namespace tecs
 			template<typename T> const auto& column() const noexcept { return column_t<mpl::traits::remove_qualifier_t<T>>::values; }
 
 		public:
+
 			template<typename T>
-			inline T& get_component(uint_t dense_index) noexcept
+			inline T& get(uint_t dense_index, entity_t ent) noexcept
+			{
+				using global_args = mpl::firstlist_has_t<mpl::to_list_list_t<Arche::global_list>, mpl::traits::remove_qualifier_t<T>>;
+				if constexpr (std::is_same_v<global_args, mpl::nulllist>)
+				{
+					return column<T>()[dense_index];
+				}
+				else
+				{
+					using tglobal = to_archetype_global_t<global_args>;
+					if constexpr(std::is_const_v<T>)
+					{
+						return tglobal::template get<T>(ent);
+					}
+					else
+					{
+						return tglobal::template get_ref<T>(ent);
+					}
+				}
+			}
+			template<typename T>
+			inline const T& get(uint_t dense_index, entity_t ent) const noexcept
+			{
+				using global_args = mpl::firstlist_has_t<mpl::to_list_list_t<Arche::global_list>, mpl::traits::remove_qualifier_t<T>>;
+				if constexpr (std::is_same_v<global_args, mpl::nulllist>)
+				{
+					return column<T>()[dense_index];
+				}
+				else
+				{
+					using tglobal = to_archetype_global_t<global_args>;
+					if constexpr (std::is_const_v<T>)
+					{
+						return tglobal::template get<T>(ent);
+					}
+					else
+					{
+						return tglobal::template get_ref<T>(ent);
+					}
+				}
+			}
+
+			template<typename T>
+			inline T& get(uint_t dense_index) noexcept
 			{
 				auto& container = column<T>();
 				return container[dense_index];
 			}
 			template<typename T>
-			inline const T& get_component(uint_t dense_index) const noexcept 
+			inline const T& get(uint_t dense_index) const noexcept 
 			{
 				const auto& container = column<T>();
 				return container[dense_index];
 			}
 
 			template<typename T>
-			inline void set_component(uint_t dense_index, T&& arg)
+			inline void set(uint_t dense_index, T&& arg)
 			{
 				auto& container = column<T>();
 				container[dense_index] = std::forward<T>(arg);
 			}
 
 			template<typename... Ts>
-			inline bool create_components(uint_t dense_index, entity_t ent, Ts&&...args)
+			inline bool creates(uint_t dense_index, entity_t ent, Ts&&...args)
 			{
-				entity_t& target_ent = get_component<entity_t>(dense_index);
-
-				((set_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
-				set_component<entity_t>(dense_index, std::move(ent));
+				((set<Ts>(dense_index, std::forward<Ts>(args))), ...);
+				set<entity_t>(dense_index, std::move(ent));
 
 				length += 1;
 				return true;
 			}
 
 			template<typename... Ts>
-			inline bool set_components(uint_t dense_index, entity_t ent, Ts&&...args)
+			inline bool sets(uint_t dense_index, entity_t ent, Ts&&...args)
 			{
 				//static_assert(!mpl::has_raw_of_v<mpl::typelist<Ts...>, entity_t>, "entity_t to be key only, not allow to be part of updates");
-				entity_t& target_ent = get_component<entity_t>(dense_index);
+				entity_t& target_ent = get<entity_t>(dense_index);
 				//must be the same entity
-				if (!target_ent.is_same(ent))
+				if (!ent.is_same(target_ent))
 				{
 					return false;
 				}
-				((set_component<Ts>(dense_index, std::forward<Ts>(args))), ...);
+				((set<Ts>(dense_index, std::forward<Ts>(args))), ...);
 
 				return true;
 			}
@@ -312,9 +345,21 @@ namespace tecs
 			template<typename Lambda, typename... Ts>
 			inline void each(Lambda&& lambda) noexcept
 			{
-				for (uint_t i = 0; i < length; i++)
+				using component_globals = mpl::listlist_has_any_of_t<mpl::to_list_list_t<typename Arche::global_list>, mpl::list_remove_qualifier_t<mpl::typelist<Ts...>>>;	
+				if constexpr(mpl::length_v<component_globals> == 0)
 				{
-					lambda(std::forward<Ts>(column<Ts>()[i])...);
+					for (uint_t i = 0; i < length; i++)
+					{
+						lambda(std::forward<Ts>(get<Ts>(i))...);
+					}
+				}
+				else
+				{
+					for (uint_t i = 0; i < length; i++)
+					{
+						entity_t ent = get<entity_t>(i);
+						lambda(std::forward<Ts>(get<Ts>(i, ent))...);
+					}
 				}
 			}
 		};
@@ -325,16 +370,11 @@ namespace tecs
 		////////////////////////////////////////////////////////////////////////////////////////////////
 
 		using chunk_ptrs_t = xvector<chunk_t*>;
-		using try_dense_id_ptr = uint_t(*)(entity_t, bool);
-		using set_dense_id_ptr = void(*)(entity_t, uint_t);
 
 	private:
 		chunk_ptrs_t chunks{};
 		uint_t chunks_count = 0;
 		uint_t elements_count = 0;
-	public:
-		try_dense_id_ptr try_dense_id;
-		set_dense_id_ptr set_dense_id;
 
 	public:
 		inline chunk_t* try_get_chunk(uint_t ichunk, bool larger_then_resize)
@@ -363,45 +403,44 @@ namespace tecs
 
 		inline entity_state has_entity(entity_t ent)
 		{
-			uint_t dense_id = try_dense_id(ent, false);
+			uint_t dense_id = Arche::try_dense_id(ent, false);
 			if(SPARSE_INDEX_NULL == dense_id)
 			{ 
 				return entity_state::miss; 
 			}
 			uint_t ichunk = dense_id / COUNT_PER_CHUNK;
 			chunk_t* chunk_ptr = try_get_chunk(ichunk, false);
-			entity_t latest = chunk_ptr->get_component<entity_t>(to_chunk_paged_id(dense_id));
+			entity_t latest = chunk_ptr->get<entity_t>(to_chunk_paged_id(dense_id));
 			if(!latest.is_same(ent))
 			{ return entity_state::outdate; }
 
-			return entity_state::exist;
+			return entity_state::alive;
 		}
 
 		template<typename... Ts>
-		inline bool create_components(entity_t ent, Ts&&...args)
+		inline bool creates(entity_t ent, Ts&&...args)
 		{
-			uint_t dense_id = try_dense_id(ent, true);
-			if (SPARSE_INDEX_NULL == dense_id)
-			{
-				dense_id = elements_count;
-			}
+			uint_t dense_id = Arche::try_dense_id(ent, true);
+			if (SPARSE_INDEX_NULL != dense_id)
+			{ return false; }
+			dense_id = elements_count;
 			uint_t ichunk = dense_id / COUNT_PER_CHUNK;
 			chunk_t* chunk_ptr = try_get_chunk(ichunk, true);
-			set_dense_id(ent, dense_id);
+			Arche::set_dense_id(ent, dense_id);
 			dense_id = to_chunk_paged_id(dense_id);
-			bool ok = chunk_ptr->create_components(dense_id, ent, std::forward<Ts>(args)...);
+			bool ok = chunk_ptr->creates(dense_id, ent, std::forward<Ts>(args)...);
 			elements_count += 1;
 			return ok;
 		}
 
 		template<typename... Ts>
-		inline bool set_components(entity_t ent, Ts&&...args)
+		inline bool sets(entity_t ent, Ts&&...args)
 		{
 			//static_assert(!mpl::has_raw_of_v<mpl::typelist<Ts...>, entity_t>, "entity_t to be key only, not allow to be part of updates");
-			if(ent.is_null())
-			{ return false; }
+			//if(ent.is_null())
+			//{ return false; }
 
-			uint_t dense_id = try_dense_id(ent, false);
+			uint_t dense_id = Arche::try_dense_id(ent, false);
 			if(SPARSE_INDEX_NULL == dense_id)
 			{ return false; }
 			uint_t ichunk = dense_id / COUNT_PER_CHUNK;
@@ -410,8 +449,51 @@ namespace tecs
 			{ return false; }
 
 			dense_id = to_chunk_paged_id(dense_id);
-			bool ok = chunk_ptr->set_components(dense_id, ent, std::forward<Ts>(args)...);
+			bool ok = chunk_ptr->sets(dense_id, ent, std::forward<Ts>(args)...);
 			return ok;
+		}
+
+		template<typename... Ts>
+		inline bool create_or_set(entity_t ent, Ts&&...args)
+		{
+			uint_t dense_id = Arche::try_dense_id(ent, true);
+			if (SPARSE_INDEX_NULL == dense_id)
+			{
+				return creates(ent, std::forward<Ts>(args)...);
+			}
+			else
+			{
+				return sets(ent, std::forward<Ts>(args)...);
+			}
+		}
+
+		template<typename T>
+		inline T& get(entity_t ent)
+		{
+			uint_t dense_id = Arche::try_dense_id(ent, false);
+			if (SPARSE_INDEX_NULL == dense_id) [[unlikely]]
+			{
+				throw std::exception(std::format("component {} miss at entity: id:{} ver:{} arche:{}", typeid(T).name(), ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+			}
+			uint_t ichunk = dense_id / COUNT_PER_CHUNK;
+			chunk_t* chunk_ptr = try_get_chunk(ichunk, false);
+			dense_id = to_chunk_paged_id(dense_id);
+			return chunk_ptr->get<T>(dense_id);
+		}
+
+		template<typename T>
+		inline const T& get(entity_t ent) const
+		{
+			uint_t dense_id = Arche::try_dense_id(ent, false);
+			if (SPARSE_INDEX_NULL == dense_id) [[unlikely]]
+			{
+				throw std::exception(std::format("component {} miss at entity: id:{} ver:{} arche:{}", typeid(T).name(), ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+			}
+			uint_t ichunk = dense_id / COUNT_PER_CHUNK;
+			chunk_t* chunk_ptr = try_get_chunk(ichunk, false);
+
+			dense_id = to_chunk_paged_id(dense_id);
+			return chunk_ptr->get<T>(dense_id);
 		}
 
 		bool remove(entity_t ent) 
@@ -419,7 +501,7 @@ namespace tecs
 			if(ent.is_null())
 			{ return false; }
 
-			uint_t dense_id = try_dense_id(ent, false);
+			uint_t dense_id = Arche::try_dense_id(ent, false);
 			if(SPARSE_INDEX_NULL == dense_id)
 			{ return false;
 			}
@@ -437,20 +519,19 @@ namespace tecs
 
 			if(dense_id == last_dense_id)
 			{
-				set_dense_id(ent, SPARSE_INDEX_NULL);
+				Arche::set_dense_id(ent, SPARSE_INDEX_NULL);
 				elements_count -= 1;
 				last_chunk_ptr->decr_iength();
 				return true;
 			}
 
-
-			const entity_t& last_ent = last_chunk_ptr->get_component<entity_t>(to_chunk_paged_id(last_dense_id));
-			(chunk_ptr->set_components<Args>(to_chunk_paged_id(dense_id), 
+			const entity_t& last_ent = last_chunk_ptr->get<entity_t>(to_chunk_paged_id(last_dense_id));
+			(chunk_ptr->sets<Args>(to_chunk_paged_id(dense_id), 
 											 ent,
-				                             std::forward<Args>(last_chunk_ptr->get_component<Args>(to_chunk_paged_id(last_dense_id)))), ...);
+				                             std::forward<Args>(last_chunk_ptr->get<Args>(to_chunk_paged_id(last_dense_id)))), ...);
 
-			set_dense_id(last_ent, dense_id);
-			set_dense_id(ent, SPARSE_INDEX_NULL);
+			Arche::set_dense_id(last_ent, dense_id);
+			Arche::set_dense_id(ent, SPARSE_INDEX_NULL);
 			if (to_chunk_paged_id(elements_count) == 0)
 			{ chunks_count -= 1; }
 			elements_count -= (elements_count < 0 ? 0 : 1);
@@ -501,20 +582,7 @@ namespace tecs
 		using type = decltype(apply());
 	};
 
-	////////////////////////////////////////////////////////////////////////////////////////////////
-	template<typename Derived> struct archetype_base_t;
-	template<typename... Args> struct archetype_global_t;
 
-	export template <class C>
-	concept IsDerivedArchetypeConcept = requires(C c)
-	{
-		// IILE
-		[] <typename... X>(archetype_base_t<X...>&) {}(c);
-	};
-
-	export template<typename T> struct is_global_archetype_t { static constexpr inline bool value = 0; };
-	export template<typename... TList> struct is_global_archetype_t<archetype_global_t<TList...>> { static constexpr inline bool value = 1; };
-	export template<typename T> constexpr bool is_global_archetype_v = is_global_archetype_t<T>::value;
 
 	template<typename T, typename=void> struct archetype_global_list_helper { using type = mpl::nulllist; };
 	template<typename T>
@@ -540,7 +608,7 @@ namespace tecs
 														IsDerivedArchetypeConcept<T>,
 														mpl::concat_t<typename archetype_global_list_helper<T>::type, typename archetype_global_atom_type<mpl::typelist<TList...>>::global_list>,
 														typename archetype_global_atom_type<mpl::typelist<TList...>>::global_list
-																			>
+																		  >
 												    >;
 
 
@@ -562,12 +630,12 @@ namespace tecs
 		using raw_list = mpl::to_list_t<Derived>;
 		using global_list = mpl::traits::if_else_t<is_global_archetype_v<Derived>, mpl::typelist<Derived>, typename archetype_global_atom_type<raw_list>::global_list>;
 		using local_list = mpl::traits::if_else_t < is_global_archetype_v<Derived>, mpl::nulllist, typename archetype_global_atom_type<raw_list>::local_list>;
-		using refine_list = mpl::traits::if_else_t<is_global_archetype_v<Derived>, raw_list, local_list>;
 		using order_list = sort_component_t<mpl::unpack_unpack_t<local_list, global_list>>::type;
-
-		static inline constexpr size_t this_id = misc::id_by_archetype<Derived>;
+		using refine_list = mpl::no_duplicate_t<mpl::unpack_unpack_t<mpl::push_front_t<entity_t, mpl::traits::if_else_t<is_global_archetype_v<Derived>, raw_list, local_list>>>>;
+		static inline constexpr size_t this_id = misc::id_by_archetype<order_list>;
+	private:
 		enum { map_component_archetype = misc::map_component_archetype<this_id, order_list>::value };
-
+	public:
 		static const char* name() { return misc::type_name_id<Derived>(); }
 
 		static bool allocated() noexcept { return Derived::allocated_impl(); }
@@ -579,7 +647,20 @@ namespace tecs
 		template<typename... Ts>
 		static entity_t create(Ts&&...args)
 		{
+			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<mpl::typelist<Ts...>>>, "args of create are not belong to archetype");
 			return Derived::create_impl(std::forward<Ts>(args)...);
+		}
+
+		template<typename... Ts>
+		static entity_t set(entity_t ent, Ts&&... args)
+		{
+			return Derived::set_impl(ent, std::forward<Ts>(args)...);
+		}
+
+		template<typename... Ts>
+		static bool create_or_set(entity_t ent, Ts&&... args)
+		{
+			return Derived::create_or_set_impl(ent, std::forward<Ts>(args)...);
 		}
 
 		static bool remove(entity_t ent)
@@ -587,9 +668,22 @@ namespace tecs
 			return Derived::remove_impl(ent);
 		}
 
+		template<typename T>
+		static T& get_ref(entity_t ent)
+		{
+			return Derived::template get_ref_impl<T>(ent);
+		}
+
+		template<typename T>
+		static const T& get(entity_t ent)
+		{
+			return Derived::template get_impl<T>(ent);
+		}
+
 		template<typename... Ts>
 		static void each(void(*func)(Ts...)) noexcept
 		{
+			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<mpl::typelist<Ts...>>>, "args of lambda are not belong to archetype");
 			Derived::each_impl(func, mpl::typelist<Ts...>{});
 		}
 
@@ -597,29 +691,29 @@ namespace tecs
 		static void each(Lambda&& lambda) noexcept
 		{
 			using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
+			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<args_type>>, "args of lambda are not belong to archetype");
 			Derived::each_impl(std::forward<Lambda>(lambda), args_type{});
 		}
 	};
 
 	//template<typename... Args> struct archetype_global_t;
 	export template<typename... Args>
-	struct archetype_global_t : archetype_base_t<archetype_global_t<Args...>>
+	struct archetype_global_t final : archetype_base_t<archetype_global_t<Args...>>
 	{
 	private:
 		using base_type = archetype_base_t<archetype_global_t<Args...>>;
-		using storage_t = sparse_set_global_t<typename base_type::order_list>;
+		using storage_t = sparse_set_paged_t<archetype_global_t, typename base_type::refine_list>;
 		using generator_id_t = id_generator_t<base_type::this_id>;
 
-		////////////////////////////////////////////////////////////////////////////////////////////////
-		// 
-		////////////////////////////////////////////////////////////////////////////////////////////////
-	private:
+		friend storage_t;
+
 		using try_dense_id_ptr = uint_t(*)(uint_t, bool);
 		using set_dense_id_ptr = void(*)(uint_t, uint_t);
 		using try_id_func_array_t = xarray< try_dense_id_ptr, ARCHETYPE_COUNT>;
 		using set_id_func_array_t = xarray< set_dense_id_ptr, ARCHETYPE_COUNT>;
 		static inline try_id_func_array_t try_dense_id_func_array;
 		static inline set_id_func_array_t set_dense_id_func_array;
+
 	public:
 
 		template<size_t ...Is>
@@ -649,6 +743,7 @@ namespace tecs
 		{
 			set_dense_id_func_array[ent.get_arche()](ent.get_id(), dense_id);
 		}
+
 	private:
 		static generator_id_t id_generator;
 		static storage_t* sparse_set_ptr;
@@ -662,8 +757,6 @@ namespace tecs
 				if (nullptr == sparse_set_ptr)
 				{
 					sparse_set_ptr = new storage_t();
-					sparse_set_ptr->try_dense_id = &try_dense_id;
-					sparse_set_ptr->set_dense_id = &set_dense_id;
 				}
 				spin.unlock();
 			}
@@ -681,17 +774,36 @@ namespace tecs
 			{ return false; }
 
 			entity_state state_ = sparse_set_ptr->has_entity(ent);
-			return state_ == entity_state::exist;
+			return state_ == entity_state::alive;
 		}
 
 		template<typename... Ts>
 		static entity_t create_impl(Ts&&...args)
 		{
-			entity_t ent = id_generator.get();
-			storage_t* sparse_ptr = try_sparse_set();
-			sparse_ptr->create_components(ent, std::forward<Ts>(args)...);
+			//entity_t ent = id_generator.get();
+			//storage_t* sparse_ptr = try_sparse_set();
+			//sparse_ptr->creates(ent, std::forward<Ts>(args)...);
+			throw std::exception("archetype_global_t don't allow to create entity by itself.");
+			return entity_t::null;
+		}
 
-			return ent;
+		template<typename... Ts>
+		static bool create_or_set_impl(entity_t ent, Ts&&... args)
+		{
+			storage_t* sparse_ptr = try_sparse_set();
+			return sparse_ptr->create_or_set(ent, std::forward<Ts>(args)...);
+		}
+
+		template<typename T>
+		static T& get_ref_impl(entity_t ent)
+		{
+			return sparse_set_ptr->get<T>(ent);
+		}
+
+		template<typename T>
+		static const T& get_impl(entity_t ent)
+		{
+			return sparse_set_ptr->get<T>(ent);
 		}
 
 		static bool remove_impl(entity_t ent)
@@ -717,12 +829,14 @@ namespace tecs
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	export  template<typename... Args>
-	struct archetype_standard_t : archetype_base_t<archetype_standard_t<Args...>>
+	struct archetype_standard_t final : archetype_base_t<archetype_standard_t<Args...>>
 	{
 		using this_type = archetype_standard_t<Args...>;
 		using base_type = archetype_base_t<archetype_standard_t<Args...>>;
-		using storage_t = sparse_set_global_t<typename base_type::order_list>;
+		using storage_t = sparse_set_paged_t<archetype_standard_t, typename base_type::refine_list>;
 		using generator_id_t = id_generator_t<base_type::this_id>;
+
+		friend storage_t;
 
 	private:
 		static inline uint_t try_dense_id(entity_t ent, bool larger_then_resize)
@@ -747,14 +861,53 @@ namespace tecs
 				if (nullptr == sparse_set_ptr)
 				{
 					sparse_set_ptr = new storage_t();
-					sparse_set_ptr->try_dense_id = &try_dense_id;
-					sparse_set_ptr->set_dense_id = &set_dense_id;
 				}
 				spin.unlock();
 			}
 			return sparse_set_ptr;
 		}
 
+		template<typename T>
+		inline static void create_or_set_impl_seprate(entity_t ent, T&& arg)
+		{
+			using global_args = mpl::firstlist_has_t<mpl::to_list_list_t<base_type::global_list>, mpl::traits::remove_qualifier_t<T>>;
+			if constexpr(std::is_same_v<global_args, mpl::nulllist>)
+			{
+				sparse_set_ptr->create_or_set(ent, std::forward<T>(arg));
+			}
+			else
+			{
+				using tglobal = to_archetype_global_t<global_args>;
+				tglobal::create_or_set(ent, std::forward<T>(arg));
+			}
+		}
+
+		template<typename Globals, size_t N>
+		inline static void create_or_set_unhandle_globals(entity_t ent)
+		{
+			if constexpr(N >= mpl::length_v<Globals>)
+			{ return; }
+			else
+			{
+				using tglobal = to_archetype_global_t<mpl::at_t<N, Globals>>;
+				tglobal::create_or_set(ent);
+				create_or_set_unhandle_globals<Globals, N + 1>(ent);
+			}
+		}
+
+		template<typename Globals, size_t N>
+		inline static bool remove_impl_global(entity_t ent)
+		{
+			if constexpr(N >= mpl::length_v<Globals>)
+			{ return true; }
+			else
+			{
+				using tglobal = mpl::at_t<N, Globals>;
+				bool success = tglobal::remove(ent);
+				success &= remove_impl_global<Globals, N + 1>(ent);
+				return success;
+			}
+		}
 
 	public:
 		static bool allocated_impl() { return sparse_set_ptr != nullptr; }
@@ -765,18 +918,54 @@ namespace tecs
 		static entity_t create_impl(Ts&&...args) 
 		{
 			entity_t ent = id_generator.get();
-			storage_t* sparse_ptr = try_sparse_set();
-			sparse_ptr->create_components(ent, std::forward<Ts>(args)...);
+			create_or_set_impl(ent, std::forward<Ts>(args)...);
 
 			return ent;
 		}
 
-		static void remove_impl(entity_t ent)
+		template<typename... Ts>
+		static void create_or_set_impl(entity_t ent, Ts&&... args)
+		{
+			storage_t* sparse_ptr = try_sparse_set();
+			using component_globals = mpl::listlist_has_any_of_t<mpl::to_list_list_t<base_type::global_list>, mpl::typelist<Ts...>>;
+			if constexpr (mpl::length_v<component_globals> == 0)
+			{
+				sparse_ptr->create_or_set(ent, std::forward<Ts>(args)...);
+			}
+			else
+			{
+				(create_or_set_impl_seprate<Ts>(ent, std::forward<Ts>(args)), ...);
+			}
+			using unhandle_globals = mpl::remove_any_of_t< mpl::to_list_list_t<base_type::global_list>, mpl::no_duplicate_t< mpl::pairs_values_t<component_globals>>>;
+			if constexpr(mpl::length_v<unhandle_globals> > 0)
+			{
+				create_or_set_unhandle_globals<unhandle_globals, 0>(ent);
+			}
+		}
+
+		static bool remove_impl(entity_t ent)
 		{
 			if(nullptr == sparse_set_ptr) [[unlikely]]
-			{ return; }
-			bool ok = sparse_set_ptr->remove(ent);
-			return ok;
+			{ return false; }
+			bool success = sparse_set_ptr->remove(ent);
+
+			if constexpr(mpl::length_v<base_type::global_list> > 0)
+			{
+				success &= remove_impl_global<base_type::global_list, 0>(ent);
+			}
+			return success;
+		}
+
+		template<typename T>
+		static T& get_ref_impl(entity_t ent)
+		{
+			return sparse_set_ptr->get<T>(ent);
+		}
+
+		template<typename T>
+		static const T& get_impl(entity_t ent)
+		{
+			return sparse_set_ptr->get<T>(ent);
 		}
 
 		template<typename Lambda, typename... Ts>

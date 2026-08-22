@@ -8,6 +8,8 @@ import tecs.basic;
 import component_defines;
 import archetype_defines;
 
+import helper;
+
 using size_t = std::size_t;
 
 namespace tecs
@@ -156,7 +158,7 @@ namespace tecs
                 else
                 {
                     using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
-                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each are not belong to selections of `run`");
+                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each() are not belong to selections of `run`");
                     Arche::template each(&behaivour_type::each);
                 }
             }
@@ -175,7 +177,7 @@ namespace tecs
                 else
                 {
                     using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
-                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each are not belong to selections of `run`");
+                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each() are not belong to selections of `run`");
                     Arche::template each(&behaivour_type::each);
                 }
             }

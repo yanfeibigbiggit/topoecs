@@ -54,7 +54,7 @@ namespace tecs
         using type = typename apply_t<configs::TYPE_ID_START_INDEX, mpl::nulllist, void>::type;
     };
 
-    export template<typename T>
+    export template<size_t UniqueFlag = 0>
     struct world_t
     {
     private:
@@ -97,7 +97,7 @@ namespace tecs
         /// </summary>
         static void init()
         {
-            //std::cout << "archetypes_count " << archetypes_count << std::endl;
+            std::cout << "archetypes_count " << archetypes_count << std::endl;
             set_global_archetype_sparse_indexer<0, build_global_archetype_info::type>();
         }
     };

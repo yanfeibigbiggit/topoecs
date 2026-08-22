@@ -21,7 +21,8 @@ export namespace mpl
     {
         enum { value = sizeof...(TList) };
     };
-
+    template<typename TList> 
+    constexpr inline size_t length_v = length<TList>::value;
     //////////////////////////////////////////////////////////
     template<typename T, typename... TList> struct push_front;
 
@@ -176,6 +177,7 @@ export namespace mpl
     {
         typedef nulllist type;
     };
+    template<typename T, typename TList> using erase_all_t = erase_all<T, TList>::type;
 
     //////////////////////////////////////////////////////////
     template<typename T, typename...TList> struct no_duplicate;
@@ -358,6 +360,8 @@ export namespace mpl
     {
         using type = typelist<typename to_list<TList>::type...>;
     };
+    template<> 
+    struct to_list_list<nulllist> { using type = nulllist; };
     template<typename... TList>
     using to_list_list_t = to_list_list<TList...>::type;
     //////////////////////////////////////////////////////////
@@ -384,17 +388,6 @@ export namespace mpl
     constexpr inline bool is_sub_v = is_sub<Main, Sub>::value;
 
     //////////////////////////////////////////////////////////
-    //return list of list that contain all element of sub list
-    template<typename Main, typename Sub> struct select_sublist;
-
-    template<typename... Main, typename... Sub>
-    struct select_sublist<typelist<Main...>, typelist<Sub...>>
-    {
-        using temp = typelist<traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
-        using type = typename erase_all<nulllist, temp>::type;
-    };
-    template<typename Main, typename Sub> using select_sublist_t = select_sublist<Main, Sub>::type;
-    //////////////////////////////////////////////////////////
     //all list of Main contain sub
     template<typename Main, typename Sub> struct is_all_sublist;
     template<typename T, typename... Main, typename Sub>
@@ -411,6 +404,79 @@ export namespace mpl
 
     template<typename Main, typename Sub>
     constexpr inline bool is_all_sublist_v = is_all_sublist<Main, Sub>::value;
+
+    //////////////////////////////////////////////////////////
+    //return list of list that contain all element of sub list
+    template<typename Main, typename Sub> struct listlist_has_sublist;
+
+    template<typename... Main, typename... Sub>
+    struct listlist_has_sublist<typelist<Main...>, typelist<Sub...>>
+    {
+        using temp = typelist<traits::if_else_t<is_sub_v<Main, typelist<Sub...>>, Main, nulllist>...>;
+        using type = typename erase_all<nulllist, temp>::type;
+    };
+    template<typename Main, typename Sub> using listlist_has_sublist_t = listlist_has_sublist<Main, Sub>::type;
+
+    //////////////////////////////////////////////////////////
+    //return first list that contain Target
+    template<typename Main, typename Target> struct firstlist_has;
+
+    template<typename T, typename... Main, typename Target>
+    struct firstlist_has<typelist<T, Main...>, Target>
+    {
+        using type = traits::if_else_t<has_v<T, Target>, T, typename firstlist_has<typelist<Main...>, Target>::type>;
+    };
+    template<typename Target> 
+    struct firstlist_has<nulllist, Target>
+    {
+        using type = nulllist;
+    };
+    template<typename Main, typename Target> using firstlist_has_t = firstlist_has<Main, Target>::type;
+
+    //////////////////////////////////////////////////////////
+    //return all list belong to MainList and contain any type in SubList
+    template<typename Main, typename Sub> struct listlist_has_any_of;
+    template<typename Main, typename... Sub> 
+    struct listlist_has_any_of<Main, typelist<Sub...>>
+    {
+        template<typename TList, typename Prev> struct In;
+        template<typename T, typename... TList, typename Prev>
+        struct In<typelist<T, TList...>, Prev>
+        {
+            using type = In<typelist<TList...>, traits::if_else_t<std::is_same_v<at_t<1, T>, nulllist>, Prev, push_front_t<T, Prev>>>::type;
+        };
+        template<typename Prev>
+        struct In<nulllist, Prev>
+        {
+            using type = Prev;
+        };
+
+        using type = typename In<typelist<typelist<Sub, firstlist_has_t<Main, Sub>>...>, nulllist>::type;
+    };
+    template<typename Main, typename Sub> using listlist_has_any_of_t = listlist_has_any_of<Main, Sub>::type;
+
+    //////////////////////////////////////////////////////////
+    template<typename TMap, typename Tkey> struct pairs_find;
+    template<typename TPair, typename... TMap, typename Tkey> 
+    struct pairs_find<typelist<TPair, TMap...>, Tkey>
+    {
+        using type = traits::if_else_t<std::is_same_v<at_t<0, TPair>, Tkey>, at_t<1, TPair>, typename pairs_find<typelist<TMap...>, Tkey>::type>;
+    };
+    template<typename Tkey> 
+    struct pairs_find<nulllist, Tkey>
+    {
+        using type = nulllist;
+    };
+    template<typename TMap, typename Tkey> using pairs_find_t = pairs_find<TMap, Tkey>::type;
+
+    //////////////////////////////////////////////////////////
+    template<typename TMap> struct pairs_values;
+    template<typename... TMap> 
+    struct pairs_values<typelist<TMap...>>
+    {
+        using type = typelist<at_t<1, TMap>...>;
+    };
+    template<typename TMap> using pairs_values_t = pairs_values<TMap>::type;
     
     //////////////////////////////////////////////////////////
     template<typename... TList> struct list_remove_qualifier;
@@ -500,7 +566,7 @@ export namespace mpl
     struct first_of_has<typelist<T, TList...>, Target>
     {
         using first = T;
-        using type = traits::if_else_t<same_or_has_v<T, Target>, T, typename first_of_has<typelist<TList...>, Target>::type >;
+        using type = traits::if_else_t<same_or_has_v<T, Target>, T, typename first_of_has<typelist<TList...>, Target>::type>;
     };
     template<typename T>
     struct first_of_has<typelist<>, T>
@@ -509,6 +575,21 @@ export namespace mpl
     };
     template<typename TList, typename T> using first_of_has_t = first_of_has<TList, T>::type;
 
+    //////////////////////////////////////////////////////////
+    template<typename TList, typename Removes> struct remove_any_of_type;
+    template<typename TList, typename R, typename... Removes>
+    struct remove_any_of_type<TList, typelist<R, Removes...>>
+    {
+        using type = erase_all_t<erase_all_t<R, TList>, typelist<Removes...>>;
+    };
+    template<typename TList> 
+    struct remove_any_of_type<TList, nulllist> { using type = TList; };
+    template<typename Removes>
+    struct remove_any_of_type<nulllist, Removes>  {  using type = nulllist; };
+
+    template<typename TList, typename Removes> using remove_any_of_t = remove_any_of_type<TList, Removes>::type;
+
+    
 
 }
 
