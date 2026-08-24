@@ -97,6 +97,8 @@ export namespace mpl
     {
         enum { value = -1 };
     };
+    template<typename T, typename TList>
+    constexpr inline size_t indexof_v = indexof<T, TList>::value;
 
     //////////////////////////////////////////////////////////
     template<typename A, typename B> struct concat { typedef typelist<A, B> type; };
@@ -586,6 +588,8 @@ export namespace mpl
     struct remove_any_of_type<TList, nulllist> { using type = TList; };
     template<typename Removes>
     struct remove_any_of_type<nulllist, Removes>  {  using type = nulllist; };
+    template<>
+    struct remove_any_of_type<nulllist, nulllist> { using type = nulllist; };
 
     template<typename TList, typename Removes> using remove_any_of_t = remove_any_of_type<TList, Removes>::type;
 

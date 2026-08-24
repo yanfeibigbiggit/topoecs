@@ -1,7 +1,7 @@
 export module helper;
 
 import tecs.basic;
-import component_defines;
+import tecs.datas;
 import typelist;
 
 import std;

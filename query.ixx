@@ -5,8 +5,7 @@ import typelist;
 import configs;
 import mpl;
 import tecs.basic;
-import component_defines;
-import archetype_defines;
+import tecs.datas;
 
 import helper;
 

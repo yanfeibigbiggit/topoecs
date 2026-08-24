@@ -2,8 +2,7 @@ export module tecs.advanced:world;
 
 import typelist;
 import tecs.basic;
-import component_defines;
-import archetype_defines;
+import tecs.datas;
 
 import helper;
 import configs;
@@ -66,7 +65,8 @@ namespace tecs
         {
             using arche_type = typename archetype_of_id_t<N>::type;
             //make sure archetype instantiation, so query can handle compile time id correctly.
-            static constexpr arche_type arche = arche_type{};
+            //static constexpr arche_type arche = arche_type{};
+            enum { arche_id = arche_type::this_id };
             enum { value = 1 + archetype_instantiation_t<N+1>::value };
         };
 
@@ -98,7 +98,6 @@ namespace tecs
         static void init()
         {
             std::cout << "archetypes_count " << archetypes_count << std::endl;
-            set_global_archetype_sparse_indexer<0, build_global_archetype_info::type>();
         }
     };
 }

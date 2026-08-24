@@ -1,22 +1,28 @@
-export module archetype_defines;
+export module tecs.datas:archetypes;
 
 import tecs.basic;
-import component_defines;
+import :components;
 
 import std;
+
 export template<std::size_t ID> struct archetype_of_id_t;
 
 #define REGISTER_STATIC_ARCHETYPE(_name) export template<> struct archetype_of_id_t<_name::this_id> { using type = _name; };
+
+
 
 ////////////////////////////////////////////////////////////////
 // add archetypes here.
 // examples
 ////////////////////////////////////////////////////////////////
 
-export using transform_t = tecs::archetype_global_t<position_t, rotation_t, scale_t>;
+//export using transform_t = tecs::archetype_global_t<position_t, rotation_t, scale_t>;
+//REGISTER_STATIC_ARCHETYPE(transform_t);
+
+export using transform_t = tecs::archetype_standard_t<position_t, rotation_t, scale_t>;
 REGISTER_STATIC_ARCHETYPE(transform_t);
 
-export using renderable_t = tecs::archetype_global_t<render_t, material_t>;
+export using renderable_t = tecs::archetype_standard_t<render_t, material_t>;
 REGISTER_STATIC_ARCHETYPE(renderable_t);
 
 export using hurtable_unit_t = tecs::archetype_standard_t<attribute_base_t, attribute_advance_t>;

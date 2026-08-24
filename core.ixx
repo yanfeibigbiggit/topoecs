@@ -128,26 +128,106 @@ namespace tecs
 		uint_t available() noexcept {return free.size() + ID_MAX - current.get_id(); }
 	};
 
-	template<size_t FromArcheId, size_t GlobalArcheId>
+	template<size_t GlobalArcheId>
 	struct sparse_index_global_t
+	{
+	private:
+		using row_t = xvector<uint_t>;
+		using rows_t = xvector<row_t*>;
+		static rows_t indexies;
+	public:
+		static uint_t try_dense_id(uint_t arche_id, uint_t sparse_id, bool larger_than_resize)
+		{
+			if (arche_id < indexies.size()) [[likely]]
+			{
+			SPARSE_INDEX_GLOBAL_RESIZE_LABEL:
+				auto row_ptr = indexies[arche_id];
+				if (nullptr == row_ptr) [[unlikely]]
+				{
+					if (!larger_than_resize)
+					{
+						return SPARSE_INDEX_NULL;
+					}
+					spinlock_t spin;
+					spin.lock();
+					row_ptr = indexies[arche_id];
+					if (nullptr == row_ptr)
+					{
+						row_ptr = new row_t(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT, SPARSE_INDEX_NULL);
+						indexies[arche_id] = row_ptr;
+					}
+					spin.unlock();
+				}
+				if (sparse_id < row_ptr->size()) [[likely]]
+				{
+					return row_ptr->at(sparse_id);
+				}
+				else if(larger_than_resize)
+				{
+					spinlock_t spin;
+					spin.lock();
+					if (sparse_id >= row_ptr->size())
+					{
+						auto newsize = sparse_id > row_ptr->capacity() ? sparse_id : row_ptr->capacity();
+						newsize = (uint_t)(newsize * 1.4);
+						newsize = newsize >= ID_MAX ? ID_MAX : newsize;
+						row_ptr->resize(newsize, SPARSE_INDEX_NULL);
+					}
+					spin.unlock();
+				}
+				return SPARSE_INDEX_NULL;
+			}
+			else if(larger_than_resize)
+			{
+				spinlock_t spin;
+				spin.lock();
+				if (arche_id >= indexies.size())
+				{
+					auto newsize = arche_id > indexies.capacity() ? arche_id : indexies.capacity();
+					newsize = (uint_t)(newsize * 1.4);
+					newsize = newsize >= ARCHETYPE_COUNT ? ARCHETYPE_COUNT : newsize;
+					indexies.resize(newsize, nullptr);
+				}
+				spin.unlock();
+				goto SPARSE_INDEX_GLOBAL_RESIZE_LABEL;
+			}
+			return SPARSE_INDEX_NULL;
+		}
+		static void set_dense_id(uint_t arche_id, uint_t sparse_id, uint_t dense_id)
+		{ 
+			if (arche_id < indexies.size())
+			{
+				auto row_ptr = indexies[arche_id];
+				if (nullptr != row_ptr && sparse_id < row_ptr->size())
+				{
+					(*row_ptr)[sparse_id] = dense_id;
+				}
+			}
+		}
+	};
+	template<size_t GlobalArcheId> 
+	xvector<xvector<uint_t>*> sparse_index_global_t<GlobalArcheId>::indexies(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT, nullptr);
+
+	template<size_t FromArcheId>
+	struct sparse_index_standard_t
 	{
 	private:
 		static xvector<uint_t> indexies;
 	public:
 		static uint_t try_dense_id(uint_t sparse_id, bool larger_than_resize)
 		{
-			if (sparse_id < indexies.size())[[likely]]
+			if (sparse_id < indexies.size()) [[likely]]
 			{
 				return indexies[sparse_id];
 			}
-			else if(larger_than_resize)
+			else if (larger_than_resize)
 			{
 				spinlock_t spin;
 				spin.lock();
 				if (sparse_id >= indexies.size())
 				{
 					auto newsize = (uint_t)(sparse_id * 1.4);
-					newsize = newsize >= ID_MAX_COUNT ? ID_MAX_COUNT : newsize;
+					newsize = newsize >= ID_MAX ? ID_MAX : newsize;
 					indexies.resize(newsize, SPARSE_INDEX_NULL);
 				}
 				spin.unlock();
@@ -155,12 +235,13 @@ namespace tecs
 			return SPARSE_INDEX_NULL;
 		}
 		static void set_dense_id(uint_t sparse_id, uint_t dense_id)
-		{ 
-			indexies[sparse_id] = dense_id;
+		{
+			if(sparse_id < indexies.size())
+				indexies[sparse_id] = dense_id;
 		}
 	};
-	template<size_t FromArcheId, size_t GlobalArcheId> 
-	xvector<uint_t> sparse_index_global_t<FromArcheId, GlobalArcheId>::indexies(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT, SPARSE_INDEX_NULL);
+	template<size_t FromArcheId>
+	xvector<uint_t> sparse_index_standard_t<FromArcheId>::indexies(configs::ARCHETYPE_SPARSESET_SPARSE_ARRAY_INIT, SPARSE_INDEX_NULL);
 
 	enum entity_state
 	{
@@ -185,13 +266,13 @@ namespace tecs
 	export template<typename... TList> struct is_global_archetype_t<archetype_global_t<TList...>> { static constexpr inline bool value = 1; };
 	export template<typename T> constexpr bool is_global_archetype_v = is_global_archetype_t<T>::value;
 
-	template<typename... Args> struct to_archetype_global_type;
-	template<typename... Args>
-	struct to_archetype_global_type<mpl::typelist<Args...>>
-	{
-		using type = archetype_global_t<Args...>;
-	};
-	template<typename Args> using to_archetype_global_t = to_archetype_global_type<Args>::type;
+	//template<typename... Args> struct to_archetype_global_type;
+	//template<typename... Args>
+	//struct to_archetype_global_type<mpl::typelist<Args...>>
+	//{
+	//	using type = archetype_global_t<Args...>;
+	//};
+	//template<typename Args> using to_archetype_global_t = to_archetype_global_type<Args>::type;
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	// 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -264,7 +345,9 @@ namespace tecs
 				}
 				else
 				{
-					using tglobal = to_archetype_global_t<global_args>;
+					//using tglobal = to_archetype_global_t<global_args>;
+					constexpr size_t global_index = mpl::indexof_v<global_args, mpl::to_list_list_t<Arche::global_list>>;
+					using tglobal = mpl::at_t<global_index, Arche::global_list>;
 					if constexpr(std::is_const_v<T>)
 					{
 						return tglobal::template get<T>(ent);
@@ -285,7 +368,9 @@ namespace tecs
 				}
 				else
 				{
-					using tglobal = to_archetype_global_t<global_args>;
+					//using tglobal = to_archetype_global_t<global_args>;
+					constexpr size_t global_index = mpl::indexof_v<global_args, mpl::to_list_list_t<Arche::global_list>>;
+					using tglobal = mpl::at_t<global_index, Arche::global_list>;
 					if constexpr (std::is_const_v<T>)
 					{
 						return tglobal::template get<T>(ent);
@@ -632,7 +717,7 @@ namespace tecs
 		using local_list = mpl::traits::if_else_t < is_global_archetype_v<Derived>, mpl::nulllist, typename archetype_global_atom_type<raw_list>::local_list>;
 		using order_list = sort_component_t<mpl::unpack_unpack_t<local_list, global_list>>::type;
 		using refine_list = mpl::no_duplicate_t<mpl::unpack_unpack_t<mpl::push_front_t<entity_t, mpl::traits::if_else_t<is_global_archetype_v<Derived>, raw_list, local_list>>>>;
-		static inline constexpr size_t this_id = misc::id_by_archetype<order_list>;
+		static inline constexpr size_t this_id = misc::id_by_archetype<Derived>;
 	private:
 		enum { map_component_archetype = misc::map_component_archetype<this_id, order_list>::value };
 	public:
@@ -707,41 +792,15 @@ namespace tecs
 
 		friend storage_t;
 
-		using try_dense_id_ptr = uint_t(*)(uint_t, bool);
-		using set_dense_id_ptr = void(*)(uint_t, uint_t);
-		using try_id_func_array_t = xarray< try_dense_id_ptr, ARCHETYPE_COUNT>;
-		using set_id_func_array_t = xarray< set_dense_id_ptr, ARCHETYPE_COUNT>;
-		static inline try_id_func_array_t try_dense_id_func_array;
-		static inline set_id_func_array_t set_dense_id_func_array;
-
-	public:
-
-		template<size_t ...Is>
-		static constexpr auto make_sparse_indexer_ptr(mpl::seq::indexlist<Is...>)
-		{
-			constexpr xarray<uint_t, sizeof...(Is)> archeids = { Is... };
-
-			constexpr xarray< try_dense_id_ptr, sizeof...(Is)> try_dense_id_ptrs = { (&sparse_index_global_t<Is, base_type::this_id>::try_dense_id)... };
-			for (uint_t i = 0; i < archeids.size(); i++)
-			{
-				try_dense_id_func_array[archeids[i]] = try_dense_id_ptrs[i];
-			}
-
-			constexpr xarray<set_dense_id_ptr, sizeof...(Is)> set_dense_id_ptrs = { (&sparse_index_global_t<Is, base_type::this_id>::set_dense_id)... };
-			for (uint_t i = 0; i < archeids.size(); i++)
-			{
-				set_dense_id_func_array[archeids[i]] = set_dense_id_ptrs[i];
-			}
-		}
 	private:
 		static inline uint_t try_dense_id(entity_t ent, bool larger_then_resize)
 		{
-			uint_t dense_id = try_dense_id_func_array[ent.get_arche()](ent.get_id(), larger_then_resize);
+			uint_t dense_id = sparse_index_global_t<base_type::this_id>::try_dense_id(ent.get_arche(), ent.get_id(), larger_then_resize);
 			return dense_id;
 		}
 		static inline void set_dense_id(entity_t ent, uint_t dense_id)
 		{
-			set_dense_id_func_array[ent.get_arche()](ent.get_id(), dense_id);
+			sparse_index_global_t<base_type::this_id>::set_dense_id(ent.get_arche(), ent.get_id(), dense_id);
 		}
 
 	private:
@@ -841,12 +900,12 @@ namespace tecs
 	private:
 		static inline uint_t try_dense_id(entity_t ent, bool larger_then_resize)
 		{
-			uint_t dense_id = sparse_index_global_t<base_type::this_id, base_type::this_id>::try_dense_id(ent.get_id(), larger_then_resize);
+			uint_t dense_id = sparse_index_standard_t<base_type::this_id>::try_dense_id(ent.get_id(), larger_then_resize);
 			return dense_id;
 		}
 		static inline void set_dense_id(entity_t ent, uint_t dense_id)
 		{
-			sparse_index_global_t<base_type::this_id, base_type::this_id>::set_dense_id(ent.get_id(), dense_id);
+			sparse_index_standard_t<base_type::this_id>::set_dense_id(ent.get_id(), dense_id);
 		}
 	private:
 		static storage_t* sparse_set_ptr;
@@ -877,7 +936,9 @@ namespace tecs
 			}
 			else
 			{
-				using tglobal = to_archetype_global_t<global_args>;
+				//using tglobal = to_archetype_global_t<global_args>;
+				constexpr size_t global_index = mpl::indexof_v<global_args, mpl::to_list_list_t<base_type::global_list>>;
+				using tglobal = mpl::at_t<global_index, base_type::global_list>;
 				tglobal::create_or_set(ent, std::forward<T>(arg));
 			}
 		}
@@ -889,7 +950,10 @@ namespace tecs
 			{ return; }
 			else
 			{
-				using tglobal = to_archetype_global_t<mpl::at_t<N, Globals>>;
+				//using tglobal = to_archetype_global_t<mpl::at_t<N, Globals>>;
+				using global_args = mpl::at_t<N, Globals>;
+				constexpr size_t global_index = mpl::indexof_v<global_args, mpl::to_list_list_t<base_type::global_list>>;
+				using tglobal = mpl::at_t<global_index, base_type::global_list>;
 				tglobal::create_or_set(ent);
 				create_or_set_unhandle_globals<Globals, N + 1>(ent);
 			}

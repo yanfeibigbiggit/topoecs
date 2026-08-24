@@ -11,10 +11,5 @@ namespace tecs
 			while (x <= v) { x *= 2; }
 			return (x - v < v - x / 2) ? x : x / 2;
 		}
-
-		//export constexpr void max(size_t a, size_t b)
-		//{
-		//	
-		//}
 	}
 }
