@@ -19,28 +19,28 @@ export template<std::size_t ID> struct archetype_of_id_t;
 //export using transform_t = tecs::archetype_global_t<position_t, rotation_t, scale_t>;
 //REGISTER_STATIC_ARCHETYPE(transform_t);
 
-export using transform_t = tecs::archetype_standard_t<position_t, rotation_t, scale_t>;
+export using transform_t = tecs::archetype_default_t<position_t, rotation_t, scale_t>;
 REGISTER_STATIC_ARCHETYPE(transform_t);
 
-export using renderable_t = tecs::archetype_standard_t<render_t, material_t>;
+export using renderable_t = tecs::archetype_default_t<render_t, material_t>;
 REGISTER_STATIC_ARCHETYPE(renderable_t);
 
-export using hurtable_unit_t = tecs::archetype_standard_t<attribute_base_t, attribute_advance_t>;
+export using hurtable_unit_t = tecs::archetype_default_t<attribute_base_t, attribute_advance_t>;
 REGISTER_STATIC_ARCHETYPE(hurtable_unit_t);
 
-export using movable_unit_t = tecs::archetype_standard_t<transform_t, movment_t>;
+export using movable_unit_t = tecs::archetype_default_t<transform_t, movment_t>;
 REGISTER_STATIC_ARCHETYPE(movable_unit_t);
 
-export using movable_renderable_t = tecs::archetype_standard_t<movable_unit_t, renderable_t>;
+export using movable_renderable_t = tecs::archetype_default_t<movable_unit_t, renderable_t>;
 REGISTER_STATIC_ARCHETYPE(movable_renderable_t);
 
-export using movable_unit_renderable_t = tecs::archetype_standard_t<movable_renderable_t, hurtable_unit_t>;
+export using movable_unit_renderable_t = tecs::archetype_default_t<movable_renderable_t, hurtable_unit_t>;
 REGISTER_STATIC_ARCHETYPE(movable_unit_renderable_t);
 
-export using hurtable_movable_unit_t = tecs::archetype_standard_t<movable_unit_t, hurtable_unit_t>;
+export using hurtable_movable_unit_t = tecs::archetype_default_t<movable_unit_t, hurtable_unit_t>;
 REGISTER_STATIC_ARCHETYPE(hurtable_movable_unit_t);
 
-export using hurtable_movable_renderable_unit_t = tecs::archetype_standard_t<movable_unit_renderable_t, hurtable_unit_t, animation_t>;
+export using hurtable_movable_renderable_unit_t = tecs::archetype_default_t<movable_unit_renderable_t, hurtable_unit_t, animation_t>;
 REGISTER_STATIC_ARCHETYPE(hurtable_movable_renderable_unit_t);
 
 

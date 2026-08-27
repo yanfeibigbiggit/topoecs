@@ -10,11 +10,6 @@ export struct position_t
     float x;
     float y;
     float z;
-    //position_t() {}
-    //position_t(int xx, int yy, int zz) :x(xx), y(yy), z(zz) { std::cout << "position_t cons" << std::endl; }
-    //position_t(position_t&& other):x(other.x),y(other.y),z(other.z){ std::cout << "position_t move" << std::endl; }
-    //position_t& operator=(position_t& other) { x = other.x; y = other.y; z = other.z; return *this; std::cout << "position_t =&" << std::endl; }
-    //position_t& operator=(position_t&& other) { x = other.x; y = other.y; z = other.z; return *this; std::cout << "position_t =&&" << std::endl; }
 };
 
 
