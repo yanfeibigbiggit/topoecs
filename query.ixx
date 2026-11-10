@@ -33,7 +33,7 @@ namespace tecs
             using pass_type = mpl::traits::if_else_t<
                 has,
                 mpl::traits::if_else_t<mpl::is_sub_v<order_list, ArgList>,
-                                       typename mpl::push_front_t<arche_type, Prev>,
+                                       typename mpl::push_back_t<arche_type, Prev>,
                                        Prev>,
                 Prev>;
 

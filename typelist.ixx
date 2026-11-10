@@ -47,7 +47,17 @@ export namespace mpl
     {
         typedef nulllist type;
     };
+    //////////////////////////////////////////////////////////
+    template<typename T, typename... TList> struct push_back;
 
+    template<typename T, typename... TList>
+    struct push_back< T, typelist<TList...> >
+    {
+        typedef typelist<TList..., T>  type;
+    };
+    template<typename T, typename TList> using push_back_t = push_back<T, TList>::type;
+
+    //////////////////////////////////////////////////////////
 
     //////////////////////////////////////////////////////////
     template<size_t N, typename... TList> struct at;
