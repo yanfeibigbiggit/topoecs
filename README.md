@@ -134,6 +134,12 @@ tecs::query_t::with<
 });
 ```
 
+#### 06 init:
+```c++
+//must be called before any thing in your program.
+//main()
+tecs::world_t<>::init();
+```
 
 
 
