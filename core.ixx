@@ -481,7 +481,7 @@ namespace tecs
 		{
 			for (uint_t i = 0; i < length; i++)
 			{
-				chunks[i]->each<Lambda, Ts...>(lambda);
+				chunks[i]->each<Lambda, Ts...>(std::forward<Lambda>(lambda));
 			}
 		}
 
