@@ -33,9 +33,7 @@ namespace tecs
             using pass_type = mpl::traits::if_else_t<
                 has,
                 mpl::traits::if_else_t<mpl::is_sub_v<order_list, ArgList>,
-                                       mpl::traits::if_else_t<is_global_archetype_v<arche_type>, 
-                                                              Prev,
-                                                              typename mpl::push_front_t<arche_type, Prev>>,
+                                       typename mpl::push_front_t<arche_type, Prev>,
                                        Prev>,
                 Prev>;
 
@@ -143,18 +141,13 @@ namespace tecs
                 using default_type = mpl::nulllist;
             };
 
-
             template<typename Arche>
             static void loop_impl()
             {
                 using found_type = trait_behaviour_t<behaviour_list, Arche>::type;
-                using behaivour_type = mpl::traits::if_else_t<std::is_same_v<found_type, mpl::nulllist>, typename trait_behaviour_t<behaviour_list, Arche>::default_type, found_type>;
-                static_assert(!mpl::is_null_v<behaivour_type>, "you need to pass a empty specification class with static each() as a default caller. like: template<> class something<> { each(...) }");
-                if constexpr(mpl::is_null_v<behaivour_type>)//prevent compiler error unneed.
-                { 
-                    return; 
-                }
-                else
+                using behaivour_type = mpl::traits::if_else_t<mpl::is_null_v<found_type>, typename trait_behaviour_t<behaviour_list, Arche>::default_type, found_type>;
+                static_assert(!mpl::is_null_v<behaivour_type>, "you need to pass an empty specification class with static each() as a default caller: template<> struct something<> { each(...) }");
+                if constexpr(!mpl::is_null_v<behaivour_type>)
                 {
                     using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
                     static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each() are not belong to selections of `run`");

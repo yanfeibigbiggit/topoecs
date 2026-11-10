@@ -21,25 +21,25 @@
     <ClCompile Include="topoecs.cpp">
       <Filter>源文件</Filter>
     </ClCompile>
-    <ClCompile Include="typelist.ixx">
+    <ClCompile Include="archetypes.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="core.ixx">
-      <Filter>头文件\include</Filter>
-    </ClCompile>
-    <ClCompile Include="component_defines.ixx">
-      <Filter>头文件\include</Filter>
-    </ClCompile>
-    <ClCompile Include="archetype_defines.ixx">
+    <ClCompile Include="components.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="configs.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="query.ixx">
+    <ClCompile Include="core.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="tecs.basic.ixx">
+    <ClCompile Include="datas.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="helper.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="maths.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="misc.ixx">
@@ -48,22 +48,25 @@
     <ClCompile Include="mpl.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="maths.ixx">
+    <ClCompile Include="query.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="tecs.advanced.ixx">
+      <Filter>头文件\include</Filter>
+    </ClCompile>
+    <ClCompile Include="tecs.basic.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="threads.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="world.ixx">
-      <Filter>头文件\include</Filter>
-    </ClCompile>
-    <ClCompile Include="helper.ixx">
+    <ClCompile Include="typelist.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
     <ClCompile Include="utility.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
-    <ClCompile Include="tecs.advanced.ixx">
+    <ClCompile Include="world.ixx">
       <Filter>头文件\include</Filter>
     </ClCompile>
   </ItemGroup>

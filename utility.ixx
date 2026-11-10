@@ -44,6 +44,24 @@ namespace tecs
             //using signature = mpl::typelist<R, C, Ts...>;
         };
 
+        //////////////////////////////////////////////////////////
+        //data_size_of_t
+        //////////////////////////////////////////////////////////
+        template<typename... Args> struct data_size_of_t;
+
+        template<typename T, typename... Args>
+        struct data_size_of_t<T, Args...>
+        {
+            enum { value = sizeof(T) + data_size_of_t<Args...>::value };
+        };
+
+        template<typename T>
+        struct data_size_of_t<T>
+        {
+            enum { value = sizeof(T) };
+        };
+
+
         //////////////////////////////////////////////////////////////////////
         //template<typename T>
         //struct HasMethod {

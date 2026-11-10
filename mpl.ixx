@@ -40,7 +40,7 @@ namespace mpl
 		};
 
 		export template<typename... Args>
-			inline constexpr bool is_all_same_v = is_all_same_type<Args...>::value;
+		inline constexpr bool is_all_same_v = is_all_same_type<Args...>::value;
 		//<<<<<<<<
 
 		//>>>>>>>> if_else_t

@@ -27,7 +27,7 @@ namespace tecs
         /// The memory size of a chunk holding a archetype. 
         /// The actual allocated memory will be the value closest to this size(aligned to a power of 2).
         /// </summary>
-        export inline const size_t ARCHETYPE_STANDARD_CHUNK_MEM_SIZE = 16 * 1024;
+        export inline const size_t ARCHETYPE_DEFAULT_CHUNK_MEM_SIZE = 16 * 1024;
         /// <summary>
         /// The memory size of a chunk holding a global archetype. 
         /// The actual allocated memory will be the value closest to this size(aligned to a power of 2).

@@ -128,7 +128,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <ConformanceMode>false</ConformanceMode>
+      <ConformanceMode>true</ConformanceMode>
       <LanguageStandard>stdcpp23</LanguageStandard>
       <LanguageStandard_C>stdc17</LanguageStandard_C>
       <EnableModules>true</EnableModules>
@@ -144,10 +144,11 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="archetype_defines.ixx" />
-    <ClCompile Include="component_defines.ixx" />
+    <ClCompile Include="archetypes.ixx" />
+    <ClCompile Include="components.ixx" />
     <ClCompile Include="configs.ixx" />
     <ClCompile Include="core.ixx" />
+    <ClCompile Include="datas.ixx" />
     <ClCompile Include="helper.ixx" />
     <ClCompile Include="maths.ixx" />
     <ClCompile Include="misc.ixx" />

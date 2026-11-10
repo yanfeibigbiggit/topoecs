@@ -83,66 +83,6 @@ namespace tecs
 		export template<size_t Id>
 		using archetype_by_id = type_id_t<id_archetype_tag_t>::by_id_t<Id>::type;
 
-		////////////////////////////////////////////////////////////
-		////type_id_counter_t
-		////////////////////////////////////////////////////////////
-		template<typename UniqueTag>
-		struct type_id_counter_t
-		{
-			template<size_t N>
-			struct const_counter_flag
-			{
-				//return must be `auto` for requires statement in const_counter_next()
-				friend constexpr auto adl_const_counter_flag(const_counter_flag<N>);
-			};
-
-			template<size_t N>
-			struct const_counter_writer
-			{
-				//return must be `auto` for requires statement in const_counter_next()
-				friend constexpr auto adl_const_counter_flag(const_counter_flag<N>)
-				{
-					return N;
-				}
-				constexpr void nothing() {}
-			};
-
-			template<size_t N = configs::TYPE_ID_START_INDEX, auto uique = []() {} >
-			static constexpr size_t const_counter_next()
-			{
-				constexpr bool defined = requires{ adl_const_counter_flag(const_counter_flag<N>{}); };
-				if constexpr (!defined)
-				{
-					const_counter_writer<N> writer;
-					writer.nothing();
-					return N;
-				}
-				else
-				{
-					return const_counter_next<N + 1>();
-				}
-			}
-
-			template<typename ... Args>
-			struct type_id_t
-			{
-				static inline constexpr size_t value = const_counter_next();
-			};
-		};
-
-		struct type_id_gobal_tag_t {};
-		template<typename... Args>
-		constexpr size_t type_id_global = type_id_counter_t< type_id_gobal_tag_t>::type_id_t<Args...>::value;
-
-		struct type_id_component_tag_t {};
-		export template<typename T>
-		constexpr size_t type_id_component = type_id_counter_t< type_id_component_tag_t>::type_id_t<T>::value;
-
-		struct type_id_archetype_tag_t {};
-		export template<typename T>
-		constexpr size_t type_id_archetype = type_id_counter_t< type_id_archetype_tag_t>::type_id_t<T>::value;
-
-
 		//////////////////////////////////////////////////////////
 		//type_name_id
 		//////////////////////////////////////////////////////////
@@ -157,8 +97,6 @@ namespace tecs
 #else
 			str = char unknown compiler[-1];
 #endif
-
-			return str;
 		}
 
 		constexpr int compare_type_name_id(const char* s1, const char* s2)
@@ -226,23 +164,6 @@ namespace tecs
 		{
 			return sort_index_sequence<Params...>();
 		}
-
-		//////////////////////////////////////////////////////////
-		//data_size_of_t
-		//////////////////////////////////////////////////////////
-		template<typename... Args> struct data_size_of_t;
-
-		template<typename T, typename... Args>
-		struct data_size_of_t<T, Args...>
-		{
-			enum { value = sizeof(T) + data_size_of_t<Args...>::value };
-		};
-
-		template<typename T>
-		struct data_size_of_t<T>
-		{
-			enum { value = sizeof(T) };
-		};
 
 		//////////////////////////////////////////////////////////
 		//type_map_t
