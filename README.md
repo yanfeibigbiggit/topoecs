@@ -84,10 +84,18 @@ movable_unit_t::each([](tecs::entity_t ent, movment_t& m, position_t& pos, rotat
 });
 ```
 
-B.  Using query::with.
+B.  Using query_t::with.
+
+query_t::with<A, B> means that find all archetypes both contain all components of A and B.
 
 ```c++
+//find all archetypes that contain components of movable_unit_t
 tecs::query_t::with<movable_unit_t>::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t & r)
+{
+    pos.x += pos.x + m.speed + r.u;
+});
+//find all archetypes that contain components of movable_unit_t and renderable_t
+tecs::query_t::with<movable_unit_t, renderable_t>::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t & r)
 {
     pos.x += pos.x + m.speed + r.u;
 });
@@ -107,16 +115,24 @@ struct jump_behaviour<hurtable_movable_unit_t> : tecs::behaviour_base_t
     }
 };
 
-//other archetype that contain moveable_unit_t run with default lambda,
-//but hurtable_movable_unit_t will apply `each` function of jump_behaviour<hurtable_movable_unit_t> 
+//other archetypes that contain moveable_unit_t run with default lambda,
+//but hurtable_movable_unit_t will be override
 tecs::query_t::with<movable_unit_t, 
 				   jump_behaviour<hurtable_movable_unit_t>
 				   >::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t & r)
 {
 	std::cout << std::format("run default lambda: {} {}", ent, pos) << std::endl;
 });
-```
 
+//loop all arhcetypes contains (movment_t&, position_t&, rotation_t &)
+//but hurtable_movable_unit_t will be override
+tecs::query_t::with<
+                   ump_behaviour<hurtable_movable_unit_t>
+				   >::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t & r)
+{
+	std::cout << std::format("run default lambda: {} {}", ent, pos) << std::endl;
+});
+```
 
 
 

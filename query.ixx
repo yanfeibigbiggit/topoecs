@@ -196,7 +196,18 @@ namespace tecs
             static void run(Lambda&& lambda)
             {
                 if constexpr(mpl::is_null_v<archetype_list>)
-                { query_t::run(std::forward<Lambda>(lambda)); }
+                { 
+                    if (mpl::is_null_v<behaviour_list>)
+                    {
+                        query_t::run(std::forward<Lambda>(lambda));
+                    }
+                    else
+                    {
+                        using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
+                        using archetype_list = search_t<mpl::list_remove_qualifier_t<args_type>>::type;
+                        loop(std::forward<Lambda>(lambda), archetype_list{});
+                    }
+                }
                 else
                 { loop(std::forward<Lambda>(lambda), archetype_list{}); }
             }
