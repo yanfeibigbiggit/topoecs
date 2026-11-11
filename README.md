@@ -127,7 +127,7 @@ tecs::query_t::with<movable_unit_t,
 //loop all arhcetypes contains (movment_t&, position_t&, rotation_t &)
 //but hurtable_movable_unit_t will be override
 tecs::query_t::with<
-                    ump_behaviour<hurtable_movable_unit_t>
+                    jump_behaviour<hurtable_movable_unit_t>
                     >::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t & r)
 {
 	std::cout << std::format("run default lambda: {} {}", ent, pos) << std::endl;
