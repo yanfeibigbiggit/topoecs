@@ -34,8 +34,8 @@ REGISTER_STATIC_ARCHETYPE(movable_unit_t);
 export struct movable_renderable_t : tecs::archetype_t<movable_unit_t, renderable_t>::default_t{};
 REGISTER_STATIC_ARCHETYPE(movable_renderable_t);
 
-export using movable_unit_renderable_t = tecs::archetype_default_t<movable_renderable_t, hurtable_unit_t>;
-REGISTER_STATIC_ARCHETYPE(movable_unit_renderable_t);
+//export using movable_unit_renderable_t = tecs::archetype_default_t<movable_renderable_t, hurtable_unit_t>;
+//REGISTER_STATIC_ARCHETYPE(movable_unit_renderable_t);
 
 export struct hurtable_movable_unit_t : tecs::archetype_t<movable_unit_t, hurtable_unit_t>::default_t{};
 REGISTER_STATIC_ARCHETYPE(hurtable_movable_unit_t);
