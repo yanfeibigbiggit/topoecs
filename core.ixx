@@ -268,7 +268,7 @@ namespace tecs
 				entity_t& latest = get<entity_t>(dense_index);
 				//must be same entity
 				if (!latest.is_same(ent))
-				{ return outdate; }
+				{ return false; }
 
 				((set<Ts>(dense_index, std::forward<Ts>(args))), ...);
 
@@ -290,7 +290,7 @@ namespace tecs
 
 				((set<Ts>(dense_index, std::forward<Ts>(args))), ...);
 
-				return true;
+				return alive;
 			}
 
 			bool remove(entity_t ent)
