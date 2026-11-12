@@ -1,5 +1,4 @@
-﻿// topoecs.cpp : 此文件包含 "main" 函数。程序执行将在此处开始并结束。
-//
+﻿
 import tecs.basic;
 import tecs.advanced;
 import std;
@@ -13,17 +12,17 @@ template<typename... T> struct jump_behaviour;
 template<>
 struct jump_behaviour<> : tecs::behaviour_base_t
 {
-    static void each(tecs::entity_t ent)
+    static void run(tecs::entity_t ent)
     {
-        std::cout << "jump_behaviour<>::each " << std::endl;
+        //std::cout << "jump_behaviour<>::run " << std::endl;
     }
 };
 template<>
 struct jump_behaviour<movable_unit_t> : tecs::behaviour_base_t
 {
-    static void each(tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t& rot, scale_t& sc)
+    static void run(tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t& rot, scale_t& sc)
     {
-        //std::cout << "jump_behaviour<movable_unit_t>::each " << std::format("{} {} {}", pos, rot, sc) << std::endl;
+        //std::cout << "jump_behaviour<movable_unit_t>::run " << std::format("{} {} {}", pos, rot, sc) << std::endl;
         m.speed = m.direction + 1;
     }
 };
@@ -31,22 +30,22 @@ struct jump_behaviour<movable_unit_t> : tecs::behaviour_base_t
 template<>
 struct jump_behaviour<renderable_t> : tecs::behaviour_base_t
 {
-    static void each(tecs::entity_t ent, movment_t& m)
+    static void run(tecs::entity_t ent, movment_t& m)
     {
-        //std::cout << "jump_behaviour<renderable_t>::each " << std::endl;
+        //std::cout << "jump_behaviour<renderable_t>::run " << std::endl;
     }
 };
 
 template<>
 struct jump_behaviour<hurtable_movable_unit_t> : tecs::behaviour_base_t
 {
-    static void each(tecs::entity_t ent, movment_t& m)
+    static void run(tecs::entity_t ent, movment_t& m)
     {
-        //std::cout << "jump_behaviour<hurtable_movable_unit_t>::each " << std::endl;
+        //std::cout << "jump_behaviour<hurtable_movable_unit_t>::run " << std::endl;
     }
 };
 
-int looptime = 1000000;
+int looptime = 10;
 
 namespace timer = std::chrono;
 int main()
@@ -65,7 +64,7 @@ int main()
     std::cout << "create time " << duration.count() << std::endl;
 
     create_start = timer::steady_clock::now();
-    tecs::query_t::with<movable_unit_t, jump_behaviour<hurtable_movable_unit_t> /*, jump_behaviour<>*/>::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t& r)
+    tecs::query_t::with<movable_unit_t, jump_behaviour<hurtable_movable_unit_t> /*, jump_behaviour<>*/>::run([](tecs::entity_t ent, movment_t& m, position_t& pos, rotation_t& r/*, attribute_base_t& ab*/)
     {
         //std::cout << std::format("run default lambda: {} {}", ent, pos) << std::endl;
         pos.x += pos.x + m.speed + r.u;

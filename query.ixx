@@ -15,7 +15,7 @@ namespace tecs
 {
     template<typename Queryable>
     concept QueryableConcept =     IsDerivedArchetypeConcept<Queryable>
-                                || (IsDerivedBehaviourConcept<Queryable> && HasEachMethod<Queryable>)
+                                || (IsDerivedBehaviourConcept<Queryable> && HasRunMethod<Queryable>)
                                 || (!IsDerivedBehaviourConcept<Queryable> && std::is_standard_layout_v<Queryable>);
 
     template<typename T, typename ArgList> struct get_archetypes_of_component;
@@ -106,7 +106,7 @@ namespace tecs
         template<typename T, typename... Behaviour>
         struct select_behaviour_t<mpl::typelist<T, Behaviour...>>
         {
-            using behaviour = mpl::traits::if_else_t<HasEachMethod<T>, T, mpl::nulllist>;
+            using behaviour = mpl::traits::if_else_t<HasRunMethod<T>, T, mpl::nulllist>;
             using type = mpl::concat<behaviour, typename select_behaviour_t<mpl::typelist<Behaviour...>>::type>::type;
         };
         template<>
@@ -146,12 +146,12 @@ namespace tecs
             {
                 using found_type = trait_behaviour_t<behaviour_list, Arche>::type;
                 using behaivour_type = mpl::traits::if_else_t<mpl::is_null_v<found_type>, typename trait_behaviour_t<behaviour_list, Arche>::default_type, found_type>;
-                static_assert(!mpl::is_null_v<behaivour_type>, "you need to pass an empty specification class with static each() as a default caller: template<> struct something<> { each(...) }");
+                static_assert(!mpl::is_null_v<behaivour_type>, "you need to pass an empty specification class with static run() as a default caller: template<> struct something<> { run(...) {}; }");
                 if constexpr(!mpl::is_null_v<behaivour_type>)
                 {
-                    using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
-                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each() are not belong to selections of `run`");
-                    Arche::template each(&behaivour_type::each);
+                    using args_type = utility::inspector_callable_t<decltype(&behaivour_type::run)>::args_type;
+                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of behaviour don't match archetype");
+                    Arche::template each(&behaivour_type::run);
                 }
             }
 
@@ -162,15 +162,15 @@ namespace tecs
                 if constexpr (mpl::is_null_v<behaivour_type>)
                 {
                     using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
-                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of lambda or function are not belong to selections of `run`");
+                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of lambda or function don't match archetype");
                     Arche::template each(lambda);
                     return;
                 }
                 else
                 {
-                    using args_type = utility::inspector_callable_t<decltype(&behaivour_type::each)>::args_type;
-                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of each() are not belong to selections of `run`");
-                    Arche::template each(&behaivour_type::each);
+                    using args_type = utility::inspector_callable_t<decltype(&behaivour_type::run)>::args_type;
+                    static_assert(mpl::is_sub_v<Arche::order_list, mpl::list_remove_qualifier_t<args_type>>, "args of behaviour don't match archetype");
+                    Arche::template each(&behaivour_type::run);
                 }
             }
 

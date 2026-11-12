@@ -656,7 +656,7 @@ namespace tecs
 		template<typename... Ts>
 		static void each(void(*func)(Ts...)) noexcept
 		{
-			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<mpl::typelist<Ts...>>>, "args of lambda are not belong to archetype");
+			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<mpl::typelist<Ts...>>>, "args of lambda don't match archetype");
 			each_impl(func, mpl::typelist<Ts...>{});
 		}
 
@@ -664,7 +664,7 @@ namespace tecs
 		static void each(Lambda&& lambda) noexcept
 		{
 			using args_type = utility::inspector_callable_t<decltype(&mpl::traits::remove_qualifier_t<Lambda>::operator())>::args_type;
-			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<args_type>>, "args of lambda are not belong to archetype");
+			static_assert(mpl::is_sub_v<order_list, mpl::list_remove_qualifier_t<args_type>>, "args of lambda don't match archetype");
 			each_impl(std::forward<Lambda>(lambda), args_type{});
 		}
 	};
@@ -692,12 +692,14 @@ namespace tecs
 	export template <class C>
 	concept HasEachMethod = std::is_function_v<decltype(C::each)>;
 
+	export template <class C>
+	concept HasRunMethod = std::is_function_v<decltype(C::run)>;
+
 	export template<class C> concept IsTemplateClassConcept = requires(C c)
 	{
 		[] <template<class...> class T, class... Ts>(T<Ts...>) {}(c);
 	};
 
-	//export template<typename... Arche>
 	export struct behaviour_base_t {};
 	export template <class C>
 	concept IsDerivedBehaviourConcept = std::is_base_of_v<behaviour_base_t, C>;
