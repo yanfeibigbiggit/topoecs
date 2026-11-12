@@ -109,7 +109,7 @@ template<typename... T> struct jump_behaviour;
 template<>
 struct jump_behaviour<hurtable_movable_unit_t> : tecs::behaviour_base_t
 {
-    static void each(tecs::entity_t ent, movment_t& m)
+    static void run(tecs::entity_t ent, movment_t& m)
     {
         std::cout << "I AM SPECIAL " << m.speed << std::endl;
     }
