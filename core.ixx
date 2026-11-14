@@ -422,7 +422,7 @@ namespace tecs
 			chunk_t* chunk = get_chunk(chunk_id);
 			if(nullptr == chunk)
 			{
-				chunk->create(ent, std::forward<Ts>(args)...);
+				creates(ent, std::forward<Ts>(args)...);
 			}
 			else
 			{
@@ -492,7 +492,6 @@ namespace tecs
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	template<typename Derived> struct archetype_base_t;
-	template<typename... Args> struct archetype_global_t;
 
 	export template <class C>
 		concept IsDerivedArchetypeConcept = requires(C c)
