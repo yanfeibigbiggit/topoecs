@@ -250,31 +250,6 @@ namespace tecs
 				return true;
 			}
 
-			//template<typename... Ts>
-			//inline bool create_or_set(entity_t ent, Ts&&...args)
-			//{
-			//	uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
-			//	uint_t dense_index = indexies[sparse_index];
-			//	if (SPARSE_INDEX_NULL == dense_index)
-			//	{
-			//		dense_index = length;
-			//		indexies[sparse_index] = length;
-			//		length++;
-			//		((set<Ts>(dense_index, std::forward<Ts>(args))), ...);
-			//		set<entity_t>(dense_index, std::move(ent));
-			//		return true;
-			//	}
-
-			//	entity_t& latest = get<entity_t>(dense_index);
-			//	//must be same entity
-			//	if (!latest.is_same(ent))
-			//	{ return false; }
-
-			//	((set<Ts>(dense_index, std::forward<Ts>(args))), ...);
-
-			//	return true;
-			//}
-
 			template<typename... Ts>
 			inline entity_state sets(entity_t ent, Ts&&...args)
 			{
@@ -414,21 +389,6 @@ namespace tecs
 			chunk_t* chunk = try_get_chunk(chunk_id);
 			chunk->creates(ent, std::forward<Ts>(args)...);
 		}
-
-		//template<typename... Ts>
-		//inline void create_or_set(entity_t ent, Ts&&... args)
-		//{
-		//	auto chunk_id = ent.chunk_id<COUNT_PER_CHUNK>();
-		//	chunk_t* chunk = get_chunk(chunk_id);
-		//	if(nullptr == chunk)
-		//	{
-		//		creates(ent, std::forward<Ts>(args)...);
-		//	}
-		//	else
-		//	{
-		//		chunk->sets(ent, std::forward<Ts>(args)...);
-		//	}
-		//}
 
 		template<typename... Ts>
 		inline bool sets(entity_t ent, Ts&&...args)
@@ -622,19 +582,6 @@ namespace tecs
 			sparse_ptr->creates(ent, std::forward<Ts>(args)...);
 			return ent;
 		}
-
-		//template<typename... Ts>
-		//static bool create_or_set(entity_t ent, Ts&&... args)
-		//{
-		//	storage_t* sparse_ptr = try_sparse_set();
-		//	return sparse_ptr->create_or_set(ent, std::forward<Ts>(args)...);
-		//}
-
-		//template<typename T>
-		//static T& get_ref(entity_t ent)
-		//{
-		//	return sparse_set_ptr->get<T>(ent);
-		//}
 
 		template<typename T>
 		static const T& get(entity_t ent)

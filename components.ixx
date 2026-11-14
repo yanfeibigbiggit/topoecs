@@ -3,6 +3,11 @@ export module tecs.datas:components;
 import tecs.basic;
 import std;
 
+/////////////////////////////////////
+/// add components below.
+/// examples
+/////////////////////////////////////
+
 export struct at {}; export struct bt {}; export struct ct {}; export struct dt {}; export struct et {}; export struct ft {}; export struct gt {}; export struct ht {};
 
 export struct position_t

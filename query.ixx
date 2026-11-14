@@ -7,8 +7,6 @@ import mpl;
 import tecs.basic;
 import tecs.datas;
 
-import helper;
-
 using size_t = std::size_t;
 
 namespace tecs
