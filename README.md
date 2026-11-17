@@ -26,7 +26,7 @@ export struct scale_t
 ```
 
 #### 02 Define your archetypes in archetypes.ixx:
-
+You can nest any combination of archetypes and components, while ensuring that each component remains unique.
 ```c++
 export module tecs.datas:archetypes;
 
