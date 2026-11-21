@@ -405,7 +405,7 @@ export namespace mpl
     template<typename T, typename... Main, typename Sub>
     struct is_all_sublist<typelist<T, Main...>, Sub>
     {
-        enum { value = is_sub_v<T, Sub >&& is_all_sublist <typelist< Main...>, Sub > ::value };
+        enum { value = is_sub_v<T, Sub > && is_all_sublist <typelist< Main...>, Sub >::value };
     };
 
     template<typename Sub>
@@ -517,7 +517,7 @@ export namespace mpl
     template<typename TList, typename T> using first_of_not_t = first_of_not<TList, T>::type;
 
     //////////////////////////////////////////////////////////
-    //has raw reference of Target. raw type of( Target&, Target*,....) is Target.
+    //has raw reference of Target. raw type of( Target&, const Target&....) is Target.
     template<typename TList, typename Target> struct has_raw_reference_of_t;
 
     template<typename Target, typename... TList> 
@@ -528,6 +528,22 @@ export namespace mpl
     };
 
     template<typename TList, typename Target> constexpr inline bool has_raw_reference_of_v = has_raw_reference_of_t<TList, Target>::value;
+
+    //////////////////////////////////////////////////////////
+    template<typename... TList> struct is_all_reference_t { enum { value = 0 }; };
+
+    template<typename T, typename... TList> 
+    struct is_all_reference_t<typelist<T, TList...>>
+    {
+        enum { value = ((std::is_reference_v<T>) && is_all_reference_t<TList...>::value) };
+    };
+    template<>
+    struct is_all_reference_t<nulllist>
+    {
+        enum { value  = 1 };
+    };
+
+    template<typename TList> constexpr inline bool is_all_reference_v = is_all_reference_t<TList>::value;
 
     //////////////////////////////////////////////////////////
     //has any of that raw type is Target, ignore any qualifier. raw type of( Target&, Target*,....) is Target.

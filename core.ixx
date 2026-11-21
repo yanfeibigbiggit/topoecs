@@ -19,6 +19,9 @@ using size_t = std::size_t;
 template<typename T, size_t N> using xarray = std::array<T, N>;
 template<typename T> using xvector = std::vector<T>;
 
+// enmmmmm... but I have to.
+export template<typename T> using referable = std::optional<std::reference_wrapper<T>>;
+
 namespace tecs
 {
 	//64 bit layout: [UNUSED | VERSION_BITS | ARCHETYPE_BITS | ID_BITS]
@@ -202,26 +205,40 @@ namespace tecs
 		public:
 
 			template<typename T>
-			inline T& get(entity_t ent)
+			inline referable<T> get(entity_t ent)
 			{
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
 				if (SPARSE_INDEX_NULL == dense_index)
 				{
-					throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+					//throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+					return std::nullopt;
 				}
 				return get<T>(dense_index);
 			}
 			template<typename T>
-			inline const T& get(entity_t ent) const
+			inline const referable<const T> get(entity_t ent) const
 			{
 				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
 				uint_t dense_index = indexies[sparse_index];
 				if (SPARSE_INDEX_NULL = dense_index)
 				{
-					throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+					//throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+					return std::nullopt;
 				}
 				return get<T>(dense_index);
+			}
+
+			template<typename... Ts>
+			bool try_gets(entity_t ent, Ts&&... args)
+			{
+				uint_t sparse_index = ent.sparse_id<COUNT_PER_CHUNK>();
+				uint_t dense_index = indexies[sparse_index];
+				if (SPARSE_INDEX_NULL == dense_index)
+				{ return false; }
+
+				((args = get<Ts>(dense_index)), ...);
+				return true;
 			}
 
 			inline bool has_entity(entity_t ent)
@@ -391,7 +408,7 @@ namespace tecs
 		}
 
 		template<typename... Ts>
-		inline bool sets(entity_t ent, Ts&&...args)
+		inline bool sets(entity_t ent, Ts&&... args)
 		{
 			auto chunk_id = ent.chunk_id<COUNT_PER_CHUNK>();
 			auto chunk = get_chunk(chunk_id);
@@ -400,27 +417,40 @@ namespace tecs
 		}
 
 		template<typename T>
-		inline T& get(entity_t ent)
+		inline referable<T> get(entity_t ent)
 		{
 			auto chunk_id = ent.chunk_id<COUNT_PER_CHUNK>();
 			auto chunk = get_chunk(chunk_id);
 			if(nullptr == chunk)
 			{
-				throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+				//throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+				return std::nullopt;
 			}
 			return chunk->get<T>(ent);
 		}
 
 		template<typename T>
-		inline const T& get(entity_t ent) const
+		inline const referable<const T> get(entity_t ent) const
 		{
 			auto chunk_id = ent.chunk_id<COUNT_PER_CHUNK>();
 			auto chunk = get_chunk(chunk_id);
 			if (nullptr == chunk)
 			{
-				throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+				//throw std::exception(std::format("miss entity: id:{} ver:{} arche:{}", ent.get_id(), ent.get_version(), ent.get_arche()).c_str());
+				return std::nullopt;
 			}
 			return chunk->get<T>(ent);
+		}
+
+		template<typename... Ts>
+		bool try_gets(entity_t ent, Ts&&... args)
+		{
+			auto chunk_id = ent.chunk_id<COUNT_PER_CHUNK>();
+			auto chunk = get_chunk(chunk_id);
+			if(nullptr == chunk)
+			{ return false; }
+
+			return chunk->try_gets(ent, std::forward<Ts>(args)...);
 		}
 
 		bool remove(entity_t ent)
@@ -444,10 +474,6 @@ namespace tecs
 				chunks[i]->each<Lambda, Ts...>(std::forward<Lambda>(lambda));
 			}
 		}
-
-		//chunk_ptrs_t::iterator begin() noexcept { return chunks.begin(); }
-
-		//chunk_ptrs_t::const_iterator end() const noexcept { return chunks.begin() + length; }
 	};
 
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -584,9 +610,22 @@ namespace tecs
 		}
 
 		template<typename T>
-		static const T& get(entity_t ent)
+		static const referable<const T> get(entity_t ent)
 		{
 			return sparse_set_ptr->get<T>(ent);
+		}
+
+		template<typename T>
+		static referable<T> get_ref(entity_t ent)
+		{
+			return sparse_set_ptr->get<T>(ent);
+		}
+
+		template<typename... Ts>
+		static bool try_gets(entity_t ent, Ts&&... args)
+		{
+			static_assert(!mpl::has_raw_reference_of_v<mpl::typelist<Ts...>, entity_t>, "try_gets() function: forbidden reference to entity_t");
+			return sparse_set_ptr->try_gets(ent, std::forward<Ts>(args)...);
 		}
 
 		static bool remove(entity_t ent)
